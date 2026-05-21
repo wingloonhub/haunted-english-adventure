@@ -13,10 +13,11 @@
     return { coins: 0, keys: [], cleared: [], items: {}, burgerBonus: 0, escaped: false, shieldsLeft: rollShields() };
   }
   function newProfileId() { return "p_" + Math.random().toString(36).slice(2, 10); }
-  function blankProfile(name) {
+  function blankProfile(name, gender) {
     return {
       id: newProfileId(),
       name: (name || "Player").trim() || "Player",
+      gender: gender === "girl" ? "girl" : "boy",
       createdAt: Date.now(),
       lastPlayed: Date.now(),
       mansions: {},
@@ -96,12 +97,19 @@
       const id = STORE.state.activeProfileId;
       return id ? STORE.state.profiles[id] : null;
     },
-    createProfile(name) {
-      const p = blankProfile(name);
+    createProfile(name, gender) {
+      const p = blankProfile(name, gender);
       STORE.state.profiles[p.id] = p;
       STORE.state.activeProfileId = p.id;
       STORE.save();
       return p;
+    },
+    updateProfile(id, patch) {
+      const p = STORE.state.profiles[id]; if (!p) return false;
+      if (patch.name != null) p.name = String(patch.name).trim() || "Player";
+      if (patch.gender === "boy" || patch.gender === "girl") p.gender = patch.gender;
+      STORE.save();
+      return true;
     },
     selectProfile(id) {
       if (!STORE.state.profiles[id]) return false;

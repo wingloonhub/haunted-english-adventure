@@ -46,7 +46,7 @@
         monsterName: room.monsterName,
         monsterMax: room.hp,                    // 10 lives (boss = 15)
         monsterHp: room.hp,
-        maxSteps: M.monsterSteps,               // 5 steps away at the start
+        maxSteps: M.monsterSteps,               // monster starts this many steps away
         steps: M.monsterSteps,
         maxLives: lives,
         lives,

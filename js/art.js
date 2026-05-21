@@ -546,8 +546,11 @@
   };
 
   /* ---------------- PLAYER: young boy (8–10) ---------------- */
-  function player(weapon) {
-    // a hand-held TORCH LIGHT (flashlight) casting a bright beam
+  function player(weapon, gender) {
+    const isGirl = gender === "girl";
+    const shirt      = isGirl ? "#e2659d" : "#c43a44";
+    const shirtSeam  = isGirl ? "#a83972" : "#a32a34";
+
     const torch = `
       <g transform="rotate(14 138 150)">
         <path d="M150 142 L220 110 L220 178 Z" fill="#fff3c0" opacity=".5"/>
@@ -562,24 +565,32 @@
         <path d="M120 150 140 126 160 150" stroke="#7a5a2a" stroke-width="6" fill="none"/>
         <circle cx="140" cy="158" r="7" fill="#9a9a9a" stroke="#5a5a5a" stroke-width="2"/>
       </g>`;
-    // small kid: big head, short body, t-shirt + shorts, sneakers
+    // Long hair behind the head (girl only) — rendered BEFORE the head so it never covers the face.
+    const backHair = isGirl
+      ? `<ellipse cx="64" cy="124" rx="9" ry="22" fill="#3a2415"/>
+         <ellipse cx="120" cy="124" rx="9" ry="22" fill="#3a2415"/>`
+      : "";
+    // Crown / top-of-head hair — same shape for both, so the face skin colour shows the same.
+    const crownHair = `<path d="M62 100q4 -40 30 -40 26 0 30 40 -6 -20 -30 -20 -24 0 -30 20Z" fill="#3a2415"/>`;
+    const accent = isGirl
+      ? `<path d="M82 62 q4 -10 12 0 q4 -10 -12 0 Z" fill="${shirt}"/>
+         <circle cx="88" cy="62" r="2" fill="${shirtSeam}"/>`
+      : `<path d="M64 96q10 -10 22 -6M120 96q-10 -10 -22 -6" fill="none" stroke="#3a2415" stroke-width="3"/>`;
+
     return svg("0 0 200 250", `
       <ellipse cx="92" cy="244" rx="44" ry="10" fill="#000" opacity=".45"/>
-      <!-- legs -->
       <rect x="74" y="188" width="15" height="44" rx="6" fill="#2c3550"/>
       <rect x="96" y="188" width="15" height="44" rx="6" fill="#2c3550"/>
       <ellipse cx="80" cy="236" rx="14" ry="8" fill="#e8e8ee"/>
       <ellipse cx="104" cy="236" rx="14" ry="8" fill="#e8e8ee"/>
-      <!-- torso (t-shirt) -->
-      <path d="M68 142q24 -14 48 0l6 50q-30 12 -60 0Z" fill="#c43a44"/>
-      <path d="M92 132v62" stroke="#a32a34" stroke-width="2" opacity=".6"/>
-      <!-- arms -->
+      <path d="M68 142q24 -14 48 0l6 50q-30 12 -60 0Z" fill="${shirt}"/>
+      <path d="M92 132v62" stroke="${shirtSeam}" stroke-width="2" opacity=".6"/>
       <path d="M70 150 50 188" stroke="#d9b08a" stroke-width="11" stroke-linecap="round"/>
       <path d="M114 150 140 150" stroke="#d9b08a" stroke-width="11" stroke-linecap="round"/>
-      <!-- head -->
+      ${backHair}
       <ellipse cx="92" cy="104" rx="30" ry="31" fill="#e8c19a"/>
-      <path d="M62 100q4 -40 30 -40 26 0 30 40 -6 -20 -30 -20 -24 0 -30 20Z" fill="#3a2415"/>
-      <path d="M64 96q10 -10 22 -6M120 96q-10 -10 -22 -6" fill="none" stroke="#3a2415" stroke-width="3"/>
+      ${crownHair}
+      ${accent}
       <circle cx="83" cy="106" r="3.6" fill="#241a10"/>
       <circle cx="101" cy="106" r="3.6" fill="#241a10"/>
       <circle cx="84" cy="105" r="1.2" fill="#fff"/><circle cx="102" cy="105" r="1.2" fill="#fff"/>
@@ -597,11 +608,12 @@
   // independently (pulse / wobble / crash) without re-rendering.
   const RING_BY_W = ["#5a5a66", "#1f5588", "#1f5588", "#1f7a3a", "#1f7a3a", "#c89a30", "#c89a30", "#c84a30", "#c83a30", "#b3122b", "#f0b53a"];
 
-  function gymPose(weight, stage) {
+  function gymPose(weight, stage, gender) {
     weight = Math.max(0, Math.min(10, weight));
+    const isGirl = gender === "girl";
 
-    if (stage === "flex") return _flexPose();
-    if (stage === "fall") return _fallPose();
+    if (stage === "flex") return _flexPose(isGirl);
+    if (stage === "fall") return _fallPose(isGirl);
 
     // default: 'lift' — power stance, arms overhead, gripping the barbell
     const ps = 18 + weight * 4;                            // plate radius 18..58
@@ -640,8 +652,12 @@
       <path d="M70 76 L86 76 M73 84 L83 84" stroke="#9a6a48" stroke-width="2.4"/>
       <path d="M154 76 L170 76 M157 84 L167 84" stroke="#9a6a48" stroke-width="2.4"/>
 
+      <!-- Ponytail BEHIND the head so it never covers the face. Drawn before head. -->
+      ${isGirl ? `<ellipse cx="158" cy="170" rx="9" ry="22" fill="#3a2415" transform="rotate(25 158 170)"/>
+                  <ellipse cx="158" cy="158" rx="4" ry="3" fill="#e2484d"/>` : ""}
       <!-- Head (between arms) -->
       <ellipse cx="120" cy="160" rx="32" ry="34" fill="#e8c19a"/>
+      <!-- Same crown hair as boy so the face skin shows the same -->
       <path d="M90 154q4 -36 30 -36 26 0 30 36 -6 -18 -30 -18 -24 0 -30 18Z" fill="#3a2415"/>
       <!-- Headband -->
       <rect x="88" y="146" width="64" height="11" rx="3" fill="#e2484d"/>
@@ -686,7 +702,7 @@
     `);
   }
 
-  function _flexPose() {
+  function _flexPose(isGirl) {
     return svg("0 0 240 340", `
       <ellipse cx="120" cy="322" rx="74" ry="11" fill="#000" opacity=".55"/>
       <circle cx="120" cy="170" r="130" fill="#f0b53a" opacity=".10"/>
@@ -716,6 +732,7 @@
       <circle cx="90" cy="114" r="13" fill="#d9b08a"/>
       <circle cx="150" cy="114" r="13" fill="#d9b08a"/>
 
+      ${isGirl ? `<ellipse cx="156" cy="170" rx="9" ry="22" fill="#3a2415" transform="rotate(25 156 170)"/>` : ""}
       <!-- Head -->
       <ellipse cx="120" cy="158" rx="32" ry="34" fill="#e8c19a"/>
       <path d="M90 152q4 -36 30 -36 26 0 30 36 -6 -18 -30 -18 -24 0 -30 18Z" fill="#3a2415"/>
@@ -737,7 +754,7 @@
     `);
   }
 
-  function _fallPose() {
+  function _fallPose(isGirl) {
     return svg("0 0 280 220", `
       <ellipse cx="140" cy="200" rx="124" ry="10" fill="#000" opacity=".55"/>
       <line x1="0" y1="190" x2="280" y2="190" stroke="#444" opacity=".25"/>
@@ -755,6 +772,7 @@
         <!-- Arms limp -->
         <path d="M86 158 Q60 184 52 192" stroke="#d9b08a" stroke-width="20" stroke-linecap="round" fill="none"/>
         <path d="M86 168 Q60 148 54 132" stroke="#d9b08a" stroke-width="20" stroke-linecap="round" fill="none"/>
+        ${isGirl ? `<ellipse cx="34" cy="178" rx="8" ry="20" fill="#3a2415" transform="rotate(50 34 178)"/>` : ""}
         <!-- Head -->
         <ellipse cx="64" cy="158" rx="30" ry="28" fill="#e8c19a"/>
         <path d="M34 160q-2 -32 26 -32 28 0 30 32 -8 -18 -30 -18 -22 0 -26 18Z" fill="#3a2415"/>
@@ -809,15 +827,16 @@
     return s;
   }
 
-  function studyPose(books, stage) {
+  function studyPose(books, stage, gender) {
     books = Math.max(0, Math.min(10, books));
-    if (stage === "jump") return _studyJump(books);
-    if (stage === "fall") return _studyFall();
-    if (stage === "sleep") return _studyRead(books, true);
-    return _studyRead(books, false);
+    const isGirl = gender === "girl";
+    if (stage === "jump") return _studyJump(books, isGirl);
+    if (stage === "fall") return _studyFall(isGirl);
+    if (stage === "sleep") return _studyRead(books, true, isGirl);
+    return _studyRead(books, false, isGirl);
   }
 
-  function _studyRead(books, sleep) {
+  function _studyRead(books, sleep, isGirl) {
     const headTilt = sleep ? "rotate(22 174 162)" : "";
     return svg("0 0 320 280", `
       <ellipse cx="160" cy="276" rx="120" ry="6" fill="#000" opacity=".45"/>
@@ -849,6 +868,7 @@
 
       <!-- HEAD (drooped onto book if sleeping) -->
       <g ${headTilt ? `transform="${headTilt}"` : ""}>
+        ${isGirl ? `<ellipse cx="226" cy="152" rx="8" ry="20" fill="#3a2415" transform="rotate(22 226 152)"/>` : ""}
         <ellipse cx="190" cy="138" rx="30" ry="32" fill="#e8c19a"/>
         <path d="M160 134q4 -34 30 -34 26 0 30 34 -6 -16 -30 -16 -24 0 -30 16Z" fill="#3a2415"/>
 
@@ -890,7 +910,7 @@
     `);
   }
 
-  function _studyJump(books) {
+  function _studyJump(books, isGirl) {
     return svg("0 0 320 300", `
       <ellipse cx="160" cy="282" rx="120" ry="9" fill="#000" opacity=".55"/>
       <circle cx="160" cy="148" r="120" fill="#f0b53a" opacity=".10"/>
@@ -925,6 +945,8 @@
           <rect x="-12" y="-7" width="24" height="3" fill="#000" opacity=".3"/>
         </g>
 
+        ${isGirl ? `<ellipse cx="128" cy="130" rx="8" ry="18" fill="#3a2415" transform="rotate(-25 128 130)"/>
+                    <ellipse cx="200" cy="130" rx="8" ry="18" fill="#3a2415" transform="rotate(25 200 130)"/>` : ""}
         <!-- head -->
         <ellipse cx="164" cy="118" rx="30" ry="32" fill="#e8c19a"/>
         <path d="M134 114q4 -32 30 -32 26 0 30 32 -6 -16 -30 -16 -24 0 -30 16Z" fill="#3a2415"/>
@@ -949,7 +971,7 @@
     `);
   }
 
-  function _studyFall() {
+  function _studyFall(isGirl) {
     return svg("0 0 320 260", `
       <ellipse cx="160" cy="240" rx="130" ry="10" fill="#000" opacity=".55"/>
       <line x1="0" y1="232" x2="320" y2="232" stroke="#444" opacity=".25"/>
@@ -981,6 +1003,7 @@
         <!-- arms limp -->
         <path d="M104 172 Q78 198 70 206" stroke="#d9b08a" stroke-width="20" stroke-linecap="round" fill="none"/>
         <path d="M104 182 Q78 162 72 146" stroke="#d9b08a" stroke-width="20" stroke-linecap="round" fill="none"/>
+        ${isGirl ? `<ellipse cx="54" cy="196" rx="8" ry="18" fill="#3a2415" transform="rotate(45 54 196)"/>` : ""}
         <!-- head -->
         <ellipse cx="82" cy="174" rx="30" ry="28" fill="#e8c19a"/>
         <path d="M52 174q-2 -28 28 -28 28 0 30 28 -8 -16 -30 -16 -22 0 -28 16Z" fill="#3a2415"/>

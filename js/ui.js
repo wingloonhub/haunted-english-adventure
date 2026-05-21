@@ -103,6 +103,7 @@
           <button class="btn full" id="report">📊 Parent Report</button>
           <button class="btn full" id="switch">👥 Switch Player</button>
           <button class="btn ghost full" id="how">❓ How to Play</button>
+          <button class="btn ghost sm" id="snd" style="align-self:center">${SOUND.isMuted() ? "🔇 Sound: OFF" : "🔊 Sound: ON"}</button>
           ${AUTH.user ? `<button class="btn ghost sm" id="out" style="align-self:center">Sign out (${esc(accountEmail)})</button>` : ""}
         </div>
       </div></div>`;
@@ -110,6 +111,7 @@
     $("#report").onclick = renderReport;
     $("#switch").onclick = renderProfileSelect;
     $("#how").onclick = renderHow;
+    $("#snd").onclick = () => { SOUND.toggleMute(); if (!SOUND.isMuted()) SOUND.play("click"); renderMenu(); };
     if ($("#out")) $("#out").onclick = () => AUTH.signOut();
   }
 
@@ -310,7 +312,7 @@
                 <div class="mon-hp-label">Reps ${b.monsterMax - b.monsterHp}/${b.monsterMax} <span class="tries-inline" id="fTries" title="3 wrong answers ends the round">${triesDotsHTML(b.wrongCount, b.wrongLimit)}</span></div>
                 <div class="mon-hp"><i style="width:${((b.monsterMax - b.monsterHp) / b.monsterMax) * 100}%"></i></div>
                 <span class="nm">${esc((STORE.active() || {}).name || "You")}</span>
-                <div class="lifter-art" id="fLifterArt">${ART.gymPose(b.monsterMax - b.monsterHp, "lift")}</div>
+                <div class="lifter-art" id="fLifterArt">${ART.gymPose(b.monsterMax - b.monsterHp, "lift", (STORE.active() || {}).gender)}</div>
               </div>
             </div>` : b.room.id === "study" ? `
             <div class="fighters gym-fighters">
@@ -318,11 +320,11 @@
                 <div class="mon-hp-label">Books read ${b.monsterMax - b.monsterHp}/${b.monsterMax} <span class="tries-inline" id="fTries" title="3 wrong answers ends the round">${triesDotsHTML(b.wrongCount, b.wrongLimit)}</span></div>
                 <div class="mon-hp"><i style="width:${((b.monsterMax - b.monsterHp) / b.monsterMax) * 100}%"></i></div>
                 <span class="nm">${esc((STORE.active() || {}).name || "You")}</span>
-                <div class="scholar-art" id="fScholarArt">${ART.studyPose(b.monsterMax - b.monsterHp, "read")}</div>
+                <div class="scholar-art" id="fScholarArt">${ART.studyPose(b.monsterMax - b.monsterHp, "read", (STORE.active() || {}).gender)}</div>
               </div>
             </div>` : `
             <div class="fighters">
-              <div class="fighter player" id="fPlayer"><span class="nm">${esc((STORE.active() || {}).name || "You")}</span>${ART.player(b.armedSling ? "sling" : "torch")}</div>
+              <div class="fighter player" id="fPlayer"><span class="nm">${esc((STORE.active() || {}).name || "You")}</span>${ART.player(b.armedSling ? "sling" : "torch", (STORE.active() || {}).gender)}</div>
               <div class="fighter monster" id="fMon" style="transform:${monsterTransform()}">
                 <div class="mon-hp-label">HP ${b.monsterHp}/${b.monsterMax}</div>
                 <div class="mon-hp"><i style="width:${(b.monsterHp / b.monsterMax) * 100}%"></i></div>
@@ -468,6 +470,7 @@
     };
 
     if (res.correct) {
+      SOUND.play(isGym ? "rep" : isStudy ? "book" : "correct");
       if (isGym) {
         // Lifting another rep — barbell pulses bigger
         gymFx("pulse", 650);
@@ -478,7 +481,7 @@
         }, 200);
         if (res.won) {
           setTimeout(() => {
-            const art = $("#fLifterArt"); if (art) art.innerHTML = ART.gymPose(10, "flex");
+            const art = $("#fLifterArt"); if (art) art.innerHTML = ART.gymPose(10, "flex", (STORE.active() || {}).gender);
             fx("💪 MUSCLES UP! 💪", "#ffe98a");
           }, 520);
           setTimeout(() => onWin(), 1800);
@@ -494,7 +497,7 @@
         }, 200);
         if (res.won) {
           setTimeout(() => {
-            const art = $("#fScholarArt"); if (art) art.innerHTML = ART.studyPose(10, "jump");
+            const art = $("#fScholarArt"); if (art) art.innerHTML = ART.studyPose(10, "jump", (STORE.active() || {}).gender);
             fx("📖 STUDIED HARD! ✨", "#ffe98a");
           }, 520);
           setTimeout(() => onWin(), 1800);
@@ -502,8 +505,10 @@
         }
       } else {
         pl && pl.classList.add("lunge");
-        if (res.weapon === "sling") stone(); else beam();
+        if (res.weapon === "sling") { SOUND.play("stone"); stone(); }
+        else { SOUND.play("attack"); beam(); }
         setTimeout(() => {
+          SOUND.play("monsterHit");
           fx("-" + res.damage + (res.weapon === "sling" ? " 🪨" : " 🔦"), "#ffe98a");
           mon && mon.classList.add("hit");
           if (mon) mon.style.transform = monsterTransform();
@@ -511,15 +516,17 @@
           const lab = $(".mon-hp-label"); if (lab) lab.textContent = "HP " + GAME.battle.monsterHp + "/" + GAME.battle.monsterMax;
         }, 200);
         if (res.won) {
-          setTimeout(() => { mon && mon.classList.add("fall"); }, 580);
+          setTimeout(() => { SOUND.play("monsterFall"); mon && mon.classList.add("fall"); }, 580);
           setTimeout(() => onWin(), 1520);
           return;
         }
       }
     } else if (res.hit || res.blocked) {
+      SOUND.play("wrong");
       if (isGym) {
         // Barbell crashes downward
         gymFx("crash");
+        SOUND.play("drop");
         setTimeout(() => {
           if (res.blocked) {
             fx("🛡️ SHIELD!", "#6fe3d2");
@@ -531,7 +538,7 @@
       } else if (isStudy) {
         // Player nods off harder — swap to the sleeping pose for the dwell
         const art = $("#fScholarArt");
-        if (art) art.innerHTML = ART.studyPose(GAME.battle.monsterMax - GAME.battle.monsterHp, "sleep");
+        if (art) art.innerHTML = ART.studyPose(GAME.battle.monsterMax - GAME.battle.monsterHp, "sleep", (STORE.active() || {}).gender);
         setTimeout(() => {
           if (res.blocked) {
             fx("🛡️ SHIELD!", "#6fe3d2");
@@ -552,6 +559,8 @@
           if (res.blocked) {
             fx("🛡️ SHIELD!", "#6fe3d2");
           } else {
+            SOUND.play("strike");
+            SOUND.play("lifeLost");
             pl && pl.classList.add("shake");
             $(".arena") && $(".arena").classList.add("shake");
             fx("-1 ❤️", "#e2484d");
@@ -561,9 +570,9 @@
       if (res.lost) {
         setTimeout(() => {
           if (isGym) {
-            const art = $("#fLifterArt"); if (art) art.innerHTML = ART.gymPose(0, "fall");
+            const art = $("#fLifterArt"); if (art) art.innerHTML = ART.gymPose(0, "fall", (STORE.active() || {}).gender);
           } else if (isStudy) {
-            const art = $("#fScholarArt"); if (art) art.innerHTML = ART.studyPose(0, "fall");
+            const art = $("#fScholarArt"); if (art) art.innerHTML = ART.studyPose(0, "fall", (STORE.active() || {}).gender);
           } else {
             pl && pl.classList.add("fall");
           }
@@ -572,28 +581,32 @@
         return;
       }
     } else {
+      // wrong answer (still away from the player, or a loot-room wobble)
+      SOUND.play(isStudy ? "snore" : "wrong");
       // monster walks one step left toward the player (or, in gym/study, the visual cue)
       setTimeout(() => {
         if (isGym) {
+          SOUND.play("step");
           gymFx("wobble", 900);
           const t = $("#fTries"); if (t) t.innerHTML = triesDotsHTML(res.wrongCount, res.wrongLimit);
           const left = Math.max(0, res.wrongLimit - res.wrongCount);
           fx(left ? `Wobble! (${left} ${left === 1 ? "try" : "tries"} left)` : "Out of tries!", left ? "#e8b23a" : "#e2484d");
         } else if (isStudy) {
           const art = $("#fScholarArt");
-          if (art) art.innerHTML = ART.studyPose(GAME.battle.monsterMax - GAME.battle.monsterHp, "sleep");
+          if (art) art.innerHTML = ART.studyPose(GAME.battle.monsterMax - GAME.battle.monsterHp, "sleep", (STORE.active() || {}).gender);
           const t = $("#fTries"); if (t) t.innerHTML = triesDotsHTML(res.wrongCount, res.wrongLimit);
           const left = Math.max(0, res.wrongLimit - res.wrongCount);
           fx(left ? `Zzz… (${left} ${left === 1 ? "try" : "tries"} left)` : "Fell asleep!", left ? "#e8b23a" : "#e2484d");
         } else {
+          SOUND.play("step");
           if (mon) mon.style.transform = monsterTransform();
           fx(res.reachedPlayer ? "It's right next to you!" : "Closer…", res.reachedPlayer ? "#e2484d" : "#e8b23a");
         }
       }, 170);
       if (res.softLost) {
         setTimeout(() => {
-          if (isGym) { const art = $("#fLifterArt"); if (art) art.innerHTML = ART.gymPose(0, "fall"); }
-          else if (isStudy) { const art = $("#fScholarArt"); if (art) art.innerHTML = ART.studyPose(0, "fall"); }
+          if (isGym) { const art = $("#fLifterArt"); if (art) art.innerHTML = ART.gymPose(0, "fall", (STORE.active() || {}).gender); }
+          else if (isStudy) { const art = $("#fScholarArt"); if (art) art.innerHTML = ART.studyPose(0, "fall", (STORE.active() || {}).gender); }
         }, 700);
         setTimeout(() => onSoftLose(), 1700);
         return;
@@ -611,6 +624,9 @@
     const isLoot = room.type === "loot";
     const title = gotKey ? "Key Found!" : (LOOT_TITLE[room.id] || "Room Cleared!");
     const emoji = gotKey ? "🗝️" : (LOOT_EMOJI[room.id] || "✨");
+    SOUND.play("win");
+    if (gotKey) setTimeout(() => SOUND.play("key"), 220);
+    setTimeout(() => SOUND.play("coin"), gotKey ? 440 : 220);
     document.body.insertAdjacentHTML("beforeend", `
       <div class="overlay" id="ov"><div class="modal">
         <div class="big-emoji">${emoji}</div>
@@ -631,6 +647,7 @@
   }
 
   function onSoftLose() {
+    SOUND.play("wrong");
     const b = GAME.battle;
     const id = b && b.room ? b.room.id : "";
     const msg = id === "gym"
@@ -654,6 +671,7 @@
   }
 
   function onDefeat() {
+    SOUND.play("gameOver");
     document.body.insertAdjacentHTML("beforeend", `
       <div class="overlay" id="ov"><div class="modal">
         <div class="big-emoji">💀</div>
@@ -665,6 +683,7 @@
   }
 
   function escapeCinematic() {
+    SOUND.play("escape");
     const cin = document.createElement("div");
     cin.className = "cinematic";
     cin.innerHTML = `
@@ -729,11 +748,11 @@
       const keysFound = Object.values(p.mansions || {}).reduce((s, m) => s + (m.keys ? m.keys.length : 0), 0);
       const isActive = STORE.state.activeProfileId === p.id;
       return `<div class="profile-card ${isActive ? "active" : ""}" data-pick="${p.id}">
-        <div class="profile-avatar">${esc((p.name || "?").charAt(0).toUpperCase())}</div>
+        <div class="profile-mini">${ART.player("torch", p.gender)}</div>
         <div class="profile-name">${esc(p.name)}</div>
         <div class="profile-meta">🪙 ${totalCoins} · 🗝️ ${keysFound}</div>
         <div class="profile-actions">
-          <button class="btn ghost sm" data-rename="${p.id}">Rename</button>
+          <button class="btn ghost sm" data-edit="${p.id}">Edit</button>
           ${profiles.length > 1 ? `<button class="btn ghost sm" data-delete="${p.id}">Delete</button>` : ""}
         </div>
       </div>`;
@@ -765,14 +784,14 @@
         renderMenu();
       };
     });
-    screen().querySelectorAll("[data-rename]").forEach(b => {
+    screen().querySelectorAll("[data-edit]").forEach(b => {
       b.onclick = (ev) => {
         ev.stopPropagation();
-        const id = b.dataset.rename;
-        const cur = STORE.state.profiles[id];
-        promptModal("Rename player", "Enter a new name:", cur ? cur.name : "", (newName) => {
-          if (newName == null) return;
-          STORE.renameProfile(id, newName);
+        const id = b.dataset.edit;
+        const cur = STORE.state.profiles[id]; if (!cur) return;
+        editProfileModal("Edit player", cur.name, cur.gender, (name, gender) => {
+          if (name == null) return;
+          STORE.updateProfile(id, { name, gender });
           renderProfileSelect();
         });
       };
@@ -788,15 +807,51 @@
       };
     });
     $("#addNew").onclick = () => {
-      promptModal("Add new player", "Player name (e.g. Preston):", "", (name) => {
+      editProfileModal("Add new player", "", "boy", (name, gender) => {
         if (!name) return;
-        STORE.createProfile(name);
+        STORE.createProfile(name, gender);
         renderMenu();
       });
     };
   }
 
-  // Simple prompt-style modal (since native prompt() is ugly).
+  // Profile create / edit modal — name input + boy/girl character picker.
+  function editProfileModal(title, initialName, initialGender, onOk) {
+    let gender = initialGender === "girl" ? "girl" : "boy";
+    document.body.insertAdjacentHTML("beforeend", `
+      <div class="overlay" id="pm"><div class="modal" style="max-width:480px">
+        <h2>${esc(title)}</h2>
+        <div class="field" style="margin-top:14px;text-align:left">
+          <label>Player name</label>
+          <input id="pmInput" type="text" value="${esc(initialName || "")}" maxlength="24" placeholder="e.g. Preston, Jenny…"/>
+        </div>
+        <div class="muted" style="font-size:13px;text-align:left;margin:6px 2px 8px">Choose your character:</div>
+        <div class="char-picker">
+          <div class="char-card ${gender === "boy" ? "active" : ""}" data-g="boy">
+            <div class="char-art">${ART.player("torch", "boy")}</div>
+            <div class="char-label">Boy</div>
+          </div>
+          <div class="char-card ${gender === "girl" ? "active" : ""}" data-g="girl">
+            <div class="char-art">${ART.player("torch", "girl")}</div>
+            <div class="char-label">Girl</div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:14px"><button class="btn ghost" id="pmNo">Cancel</button><button class="btn primary" id="pmYes">OK</button></div>
+      </div></div>`);
+    const inp = $("#pmInput"); inp.focus(); inp.select();
+    screen().parentElement.querySelectorAll(".char-card").forEach(c => {
+      c.onclick = () => {
+        gender = c.dataset.g;
+        document.querySelectorAll(".char-card").forEach(x => x.classList.toggle("active", x.dataset.g === gender));
+      };
+    });
+    function done(val) { $("#pm").remove(); onOk(val, gender); }
+    $("#pmNo").onclick = () => done(null);
+    $("#pmYes").onclick = () => done(inp.value.trim());
+    inp.onkeydown = (e) => { if (e.key === "Enter") done(inp.value.trim()); if (e.key === "Escape") done(null); };
+  }
+
+  // Single-input prompt (kept for misc uses).
   function promptModal(title, body, initial, onOk) {
     document.body.insertAdjacentHTML("beforeend", `
       <div class="overlay" id="pm"><div class="modal">

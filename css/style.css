@@ -194,6 +194,17 @@ button{font-family:inherit;cursor:pointer;border:none;outline:none}
   border:3px solid var(--border);box-shadow:0 6px 14px rgba(0,0,0,.5)
 }
 .profile-avatar.plus{background:linear-gradient(135deg,#1d3322,#0e1c12);color:var(--ghost);font-size:48px}
+.profile-mini{width:96px;height:96px;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;border-radius:50%;background:radial-gradient(circle at 40% 30%,#3a1f5e,#241036);border:3px solid var(--border)}
+.profile-mini svg{width:80%;display:block}
+
+/* Character picker (used in the add/edit player modal) */
+.char-picker{display:flex;gap:12px;justify-content:center;margin:6px 0 0}
+.char-card{flex:1;border:2px solid var(--border);border-radius:14px;padding:10px 6px 6px;cursor:pointer;text-align:center;background:rgba(0,0,0,.25);transition:border-color .15s,transform .15s,background .15s}
+.char-card:hover{border-color:var(--ghost);transform:translateY(-2px)}
+.char-card.active{border-color:var(--gold);background:rgba(232,178,58,.12);box-shadow:0 0 0 2px rgba(232,178,58,.25)}
+.char-card .char-art{height:128px;display:flex;align-items:flex-end;justify-content:center}
+.char-card .char-art svg{width:88px;height:auto}
+.char-card .char-label{font-weight:800;font-size:14px;margin-top:4px}
 .profile-name{font-weight:800;font-size:16px;margin-top:4px}
 .profile-meta{color:var(--muted);font-size:12.5px;font-weight:700;letter-spacing:.3px}
 .profile-actions{display:flex;gap:6px;margin-top:6px}

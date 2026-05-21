@@ -25,7 +25,7 @@
     name: "Haunted Monster Mansion",
     rooms: ROOMS,
     startLives: 3,        // lives you get inside each room
-    monsterSteps: 5,      // steps the monster starts away from you
+    monsterSteps: 3,      // steps the monster starts away from you
     shieldChance: 0.14,   // per-hit odds, but also capped at 1-3 shields for the whole run
     coinsPerKill: 30,
     // a room with a key must be cleared to earn its key; basement needs all keyRoomIds.length keys
