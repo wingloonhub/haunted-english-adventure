@@ -424,22 +424,14 @@
     const isBuilder = (typeof forcedCorrect === "boolean");
     const res = GAME.answer(i, isBuilder ? forcedCorrect : undefined);
     if (!isBuilder) {
+      // Disable buttons so the player can't double-click, but do NOT reveal which
+      // option was correct — they should learn from the consequence, not the colour.
       const opts = screen().querySelectorAll(".opt");
       opts.forEach(o => o.disabled = true);
-      opts[res.answerIndex].classList.add("correct");
-      if (!res.correct) btn.classList.add("wrong");
     } else {
-      // builder feedback: colour the built sentence, disable chips/undo/submit,
-      // and on a wrong answer reveal what the correct sentence was.
-      const built = $("#built"), bldr = screen().querySelector(".builder");
+      // Same for the builder — lock the controls but don't show the answer.
+      const bldr = screen().querySelector(".builder");
       if (bldr) bldr.querySelectorAll("button").forEach(b => b.disabled = true);
-      if (built) built.classList.add(res.correct ? "ok" : "bad");
-      if (!res.correct && bldr && builderInfo) {
-        const note = document.createElement("div");
-        note.className = "builder-correct";
-        note.innerHTML = "Correct order: <b>" + esc(builderInfo.target) + "</b>";
-        bldr.appendChild(note);
-      }
     }
 
     const roomId = GAME.battle && GAME.battle.room.id;
@@ -607,7 +599,7 @@
         return;
       }
     }
-    setTimeout(() => { busy = false; renderBattle(false); }, isBuilder && !res.correct ? 2600 : 1300);
+    setTimeout(() => { busy = false; renderBattle(false); }, 1300);
   }
 
   function onWin() {
