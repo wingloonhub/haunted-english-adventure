@@ -11,10 +11,10 @@
    ===================================================================== */
 
 window.FIREBASE_CONFIG = {
-  apiKey:            "PASTE_API_KEY_HERE",
-  authDomain:        "PASTE_PROJECT.firebaseapp.com",
-  projectId:         "PASTE_PROJECT_ID_HERE",
-  storageBucket:     "PASTE_PROJECT.appspot.com",
-  messagingSenderId: "PASTE_SENDER_ID_HERE",
-  appId:             "PASTE_APP_ID_HERE"
+  apiKey:            "AIzaSyA0Or06k26vMlhIX7NefGarmQUbeyS5VWA",
+  authDomain:        "the-haunted-english-adventure.firebaseapp.com",
+  projectId:         "the-haunted-english-adventure",
+  storageBucket:     "the-haunted-english-adventure.firebasestorage.app",
+  messagingSenderId: "936025874073",
+  appId:             "1:936025874073:web:3a97ab5cccb782858e2208"
 };
