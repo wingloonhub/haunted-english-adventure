@@ -103,22 +103,22 @@ button{font-family:inherit;cursor:pointer;border:none;outline:none}
 .page h1{font-family:var(--creep);font-size:30px;margin-bottom:4px;text-shadow:0 0 14px rgba(177,18,43,.55)}
 .page .lead{color:var(--muted);margin-bottom:20px;font-size:14px}
 .rooms-grid{
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;
 }
 .room-card{
-  position:relative;border:1px solid var(--border);border-radius:16px;overflow:hidden;
+  position:relative;border:1px solid var(--border);border-radius:12px;overflow:hidden;
   background:var(--panel-solid);cursor:pointer;transition:transform .15s, box-shadow .2s;
-  min-height:188px;display:flex;flex-direction:column;
+  min-height:130px;display:flex;flex-direction:column;
 }
-.room-card:hover{transform:translateY(-4px);box-shadow:0 16px 36px rgba(0,0,0,.6)}
-.room-card .art{height:118px;position:relative;overflow:hidden;background:#0c0718}
+.room-card:hover{transform:translateY(-3px);box-shadow:0 10px 22px rgba(0,0,0,.55)}
+.room-card .art{height:74px;position:relative;overflow:hidden;background:#0c0718}
 .room-card .art svg{width:100%;height:100%;display:block}
-.room-card .meta{padding:11px 13px}
-.room-card .rname{font-weight:800;font-size:15px;display:flex;align-items:center;gap:7px}
-.room-card .topic{color:var(--muted);font-size:12px;margin-top:3px}
+.room-card .meta{padding:7px 9px 8px}
+.room-card .rname{font-weight:800;font-size:13px;display:flex;align-items:center;gap:5px;line-height:1.2}
+.room-card .topic{color:var(--muted);font-size:11px;margin-top:2px}
 .room-card .badge{
-  position:absolute;top:9px;right:9px;font-size:11px;font-weight:800;
-  padding:4px 9px;border-radius:999px;backdrop-filter:blur(4px);
+  position:absolute;top:6px;right:6px;font-size:9.5px;font-weight:800;
+  padding:3px 7px;border-radius:999px;backdrop-filter:blur(4px);
 }
 .badge.cleared{background:rgba(70,196,106,.22);color:#9af0b3;border:1px solid rgba(70,196,106,.5)}
 .badge.locked{background:rgba(0,0,0,.55);color:#cbb6e6;border:1px solid var(--border)}
@@ -141,6 +141,9 @@ button{font-family:inherit;cursor:pointer;border:none;outline:none}
 .fighter{position:relative;transition:transform .35s ease}
 .fighter.player{width:118px}
 .fighter.monster{width:165px;transition:transform .45s cubic-bezier(.3,1.4,.5,1)}
+/* Boss fights — the Zombie Hulk King and other end-game monsters render
+   ~3x the player's width so the encounter feels appropriately massive. */
+.fighter.monster.boss{width:340px}
 .fighter svg{width:100%;height:auto;display:block;filter:drop-shadow(0 10px 14px rgba(0,0,0,.7))}
 .fighter .nm{
   position:absolute;top:-26px;left:50%;transform:translateX(-50%);
@@ -153,6 +156,12 @@ button{font-family:inherit;cursor:pointer;border:none;outline:none}
 }
 .mon-hp i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),#fff3c0);transition:width .4s}
 .mon-hp-label{position:absolute;top:-58px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:800;letter-spacing:1px;color:var(--gold);text-shadow:0 1px 0 #000;white-space:nowrap}
+.wave-tag{
+  display:inline-block;margin-left:6px;padding:2px 7px;border-radius:99px;
+  font-family:system-ui,sans-serif;font-size:11px;font-weight:800;letter-spacing:.5px;
+  background:rgba(122,223,154,.18);color:#7adf9a;border:1px solid rgba(122,223,154,.5);
+  vertical-align:middle
+}
 .stone{position:absolute;left:18%;top:62%;width:14px;height:14px;border-radius:50%;
   background:radial-gradient(circle at 35% 30%,#bdb5a0,#5e564a 70%,#2a261d);
   box-shadow:0 0 6px rgba(0,0,0,.6);pointer-events:none;z-index:5;
@@ -162,6 +171,64 @@ button{font-family:inherit;cursor:pointer;border:none;outline:none}
   background:linear-gradient(90deg,rgba(255,247,200,.95),rgba(255,233,138,.5),rgba(255,233,138,0));
   clip-path:polygon(0 42%,100% 0,100% 100%,0 58%);filter:blur(1px);animation:beam .45s ease-out}
 @keyframes beam{0%{opacity:0;transform:translateY(-50%) scaleX(.2)}25%{opacity:1}100%{opacity:0;transform:translateY(-50%) scaleX(1)}}
+
+/* Toy-gun bullet whizz */
+.bullet{position:absolute;left:18%;top:60%;width:18px;height:6px;border-radius:3px;pointer-events:none;z-index:5;
+  background:linear-gradient(90deg,#fff,#ffe98a 60%,rgba(255,233,138,0));
+  box-shadow:0 0 10px #ffe98a, 0 0 18px #ffae3c;
+  animation:bulletFly .35s linear forwards}
+@keyframes bulletFly{0%{transform:translate(0,0)}100%{transform:translate(700%,-8%);opacity:0}}
+
+/* Bat & gun swing animations (player attack pose) */
+.swing-bat{animation:swingBat .5s cubic-bezier(.4,.05,.6,.4)}
+@keyframes swingBat{
+  0%{transform:translateX(0) rotate(0)}
+  35%{transform:translateX(-10px) rotate(-12deg)}
+  65%{transform:translateX(46px) rotate(8deg)}
+  100%{transform:translateX(0) rotate(0)}
+}
+.swing-gun{animation:swingGun .35s ease-out}
+@keyframes swingGun{
+  0%{transform:translateX(0)}
+  30%{transform:translateX(-6px)}
+  60%{transform:translateX(8px)}
+  100%{transform:translateX(0)}
+}
+
+/* Impact burst that pops on top of the monster when an attack lands */
+.impact-burst{
+  position:absolute;pointer-events:none;z-index:9;
+  width:140px;height:140px;transform:translate(-50%,-50%);
+  display:flex;align-items:center;justify-content:center;
+  animation:burstFade .65s ease-out forwards
+}
+.impact-burst .ib-star{
+  font-size:64px;line-height:1;text-shadow:0 0 14px #ffae3c,0 0 28px rgba(255,233,138,.7);
+  animation:burstStar .6s cubic-bezier(.3,1.4,.5,1) forwards
+}
+.impact-burst .ib-ray{
+  position:absolute;left:50%;top:50%;width:8px;height:48px;margin-left:-4px;margin-top:-24px;
+  background:linear-gradient(180deg,#ffeb8a,rgba(255,180,60,0));
+  border-radius:4px;filter:blur(.5px);opacity:0;
+  animation:burstRay .55s ease-out forwards
+}
+.impact-burst .ib-ray.r1{transform:rotate(0deg) translateY(-40px)}
+.impact-burst .ib-ray.r2{transform:rotate(60deg) translateY(-40px)}
+.impact-burst .ib-ray.r3{transform:rotate(120deg) translateY(-40px)}
+.impact-burst .ib-ray.r4{transform:rotate(180deg) translateY(-40px)}
+.impact-burst .ib-ray.r5{transform:rotate(240deg) translateY(-40px)}
+.impact-burst .ib-ray.r6{transform:rotate(300deg) translateY(-40px)}
+@keyframes burstStar{
+  0%{transform:scale(.2) rotate(-25deg);opacity:0}
+  35%{transform:scale(1.35) rotate(10deg);opacity:1}
+  100%{transform:scale(1.05) rotate(0);opacity:0}
+}
+@keyframes burstRay{
+  0%{opacity:0;transform-origin:center;scale:.2}
+  35%{opacity:.95}
+  100%{opacity:0;scale:1.4}
+}
+@keyframes burstFade{0%,75%{opacity:1}100%{opacity:0}}
 
 /* ---------- Gym room (barbell mini-game) ---------- */
 .gym-fighters{justify-content:center !important;align-items:flex-end}
@@ -211,9 +278,27 @@ button{font-family:inherit;cursor:pointer;border:none;outline:none}
 .profile-actions .btn{padding:5px 10px;font-size:11.5px}
 
 /* ---------- 3-tries indicator for loot rooms (Study / Gym) ---------- */
-.tries-inline{display:inline-flex;gap:4px;align-items:center;margin-left:8px;vertical-align:middle}
-.tries-inline .try-dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.2);border:1px solid var(--border);display:inline-block;transition:background .25s,box-shadow .25s}
-.tries-inline .try-dot.used{background:var(--bad);border-color:var(--bad);box-shadow:0 0 8px var(--bad)}
+.tries-banner{
+  position:absolute;top:10px;left:50%;transform:translateX(-50%);
+  z-index:8;display:inline-flex;gap:7px;align-items:center;
+  background:rgba(8,4,16,.85);padding:6px 14px;border-radius:99px;
+  border:1px solid var(--gold);box-shadow:0 4px 14px rgba(0,0,0,.55)
+}
+.tries-banner .tries-lbl{
+  font-size:11px;font-weight:900;color:var(--gold);
+  letter-spacing:1.6px;text-transform:uppercase;margin-right:2px
+}
+.tries-banner .try-dot{
+  width:22px;height:22px;border-radius:50%;
+  background:rgba(255,255,255,.12);border:2px solid var(--border);
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:900;color:#fff;line-height:1;
+  transition:background .25s,box-shadow .25s,border-color .25s,transform .2s
+}
+.tries-banner .try-dot.used{
+  background:var(--bad);border-color:var(--bad);
+  box-shadow:0 0 12px var(--bad);transform:scale(1.05)
+}
 
 /* ---------- Study room (reading mini-game) ---------- */
 .fighter.scholar{width:240px;display:flex;flex-direction:column;align-items:center;position:relative}
@@ -222,6 +307,141 @@ button{font-family:inherit;cursor:pointer;border:none;outline:none}
 .fighter.scholar #bstack{transition:transform .4s cubic-bezier(.3,1.4,.5,1)}
 .fighter.scholar.pulse #bstack{animation:bookPulse .55s ease-out}
 @keyframes bookPulse{0%{transform:scale(1) translateY(0)}45%{transform:scale(1.12) translateY(-4px)}100%{transform:scale(1) translateY(0)}}
+
+/* ---------- Sports Shop (football mini-game) ---------- */
+.fighter.kicker{width:340px;flex:0 0 340px;display:flex;flex-direction:column;align-items:center;position:relative}
+.fighter.kicker .kicker-art{width:100%;line-height:0}
+.fighter.kicker .kicker-art svg{width:100%;display:block;overflow:visible}
+/* Kick swing — small body lean back-then-forward, suggests follow-through */
+.fighter.kicker.pulse .kicker-art{animation:kickSwing .55s cubic-bezier(.3,1.2,.5,1)}
+@keyframes kickSwing{
+  0%   {transform:translateX(0) rotate(0)}
+  20%  {transform:translateX(-6px) rotate(-3deg)}
+  55%  {transform:translateX(14px) rotate(4deg)}
+  100% {transform:translateX(0) rotate(0)}
+}
+
+/* Flying soccer ball: parabolic arc using CSS variables --dx / --dy / --peak */
+.soccer-fly{
+  position:absolute;z-index:6;font-size:24px;pointer-events:none;
+  transform:translate(-50%,-50%);
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.6));
+  animation:soccerFly .5s cubic-bezier(.4,.05,.6,.4) forwards
+}
+@keyframes soccerFly{
+  0%   {transform:translate(-50%,-50%) translate(0,0) rotate(0)}
+  45%  {transform:translate(-50%,-50%) translate(calc(var(--dx) * .5), var(--peak, -40px)) rotate(220deg)}
+  100% {transform:translate(-50%,-50%) translate(var(--dx), var(--dy)) rotate(540deg)}
+}
+
+/* ---------- Game Shop (target-shooting mini-game) ---------- */
+.fighter.shooter{width:340px;flex:0 0 340px;display:flex;flex-direction:column;align-items:center;position:relative}
+.fighter.shooter .shooter-art{width:100%;line-height:0}
+.fighter.shooter .shooter-art svg{width:100%;display:block;overflow:visible}
+.fighter.shooter.pulse .shooter-art{animation:shootRecoil .35s ease-out}
+@keyframes shootRecoil{0%{transform:translateX(0)}40%{transform:translateX(-8px) rotate(-1deg)}100%{transform:translateX(0)}}
+
+/* ---------- Parent report: per-mansion collapsible sections ---------- */
+.mansion-report-section{
+  background:var(--panel-solid);border:1px solid var(--border);border-radius:14px;
+  margin:16px 0;overflow:hidden;transition:border-color .15s
+}
+.mansion-report-section[open]{border-color:var(--blood-bright)}
+.mansion-report-section > summary{
+  list-style:none;cursor:pointer;
+  display:flex;align-items:center;flex-wrap:wrap;gap:10px;
+  padding:14px 18px;font-family:var(--creep);font-weight:800;
+  font-size:18px;color:#fff;letter-spacing:.5px;
+  user-select:none;transition:background .15s
+}
+.mansion-report-section > summary::-webkit-details-marker{display:none}
+.mansion-report-section > summary:hover{background:rgba(255,255,255,.04)}
+.rep-chevron{
+  display:inline-block;color:var(--gold);font-size:14px;
+  transition:transform .2s ease;width:14px;flex:0 0 14px
+}
+.mansion-report-section[open] .rep-chevron{transform:rotate(90deg)}
+.rep-mansion-name{flex:1 1 auto;min-width:140px}
+.rep-mansion-pct{
+  color:#9a8fb3;font-weight:600;font-size:14px;font-family:inherit;letter-spacing:0
+}
+.rep-weak-tag{
+  font-family:system-ui,sans-serif;font-size:12px;font-weight:700;
+  padding:4px 10px;border-radius:99px;background:rgba(226,72,77,.18);
+  color:#e2484d;border:1px solid rgba(226,72,77,.45);letter-spacing:.3px
+}
+.rep-weak-tag.muted-tag{
+  background:rgba(154,143,179,.12);color:#9a8fb3;border-color:rgba(154,143,179,.35)
+}
+.mansion-report-section > .rep-grid{padding:0 18px 18px}
+
+/* Enemy-hit burst — claw-slash effect on the player when the monster strikes */
+.enemy-hit-burst{
+  position:absolute;pointer-events:none;z-index:9;
+  width:140px;height:140px;transform:translate(-50%,-50%);
+  display:flex;align-items:center;justify-content:center;
+  animation:ehbFade .7s ease-out forwards
+}
+.enemy-hit-burst .ehb-star{
+  font-size:54px;line-height:1;
+  text-shadow:0 0 14px rgba(226,72,77,.85),0 0 28px rgba(226,72,77,.5);
+  animation:ehbStar .65s cubic-bezier(.3,1.4,.5,1) forwards
+}
+.enemy-hit-burst.blocked .ehb-star{
+  text-shadow:0 0 14px rgba(111,227,210,.85),0 0 28px rgba(111,227,210,.5)
+}
+.enemy-hit-burst .ehb-claw{
+  position:absolute;left:50%;top:50%;width:6px;height:64px;margin-left:-3px;margin-top:-32px;
+  background:linear-gradient(180deg,#e2484d,rgba(226,72,77,0));
+  border-radius:3px;filter:drop-shadow(0 0 4px #e2484d);
+  transform-origin:center bottom;opacity:0;
+  animation:ehbClaw .6s ease-out forwards
+}
+.enemy-hit-burst .ehb-claw.c1{transform:rotate(-22deg)}
+.enemy-hit-burst .ehb-claw.c2{transform:rotate(0deg);height:72px;margin-top:-36px}
+.enemy-hit-burst .ehb-claw.c3{transform:rotate(22deg)}
+@keyframes ehbStar{
+  0%   {transform:scale(.3) rotate(-25deg);opacity:0}
+  35%  {transform:scale(1.3) rotate(10deg);opacity:1}
+  100% {transform:scale(1) rotate(0);opacity:0}
+}
+@keyframes ehbClaw{
+  0%   {opacity:0;scale:.3}
+  30%  {opacity:.95;scale:1.1}
+  100% {opacity:0;scale:1.3}
+}
+@keyframes ehbFade{0%,75%{opacity:1}100%{opacity:0}}
+
+/* Bullet trace — straight-line streak from the gun toward the target / overshoot */
+.bullet-trace{
+  position:absolute;z-index:6;pointer-events:none;
+  width:22px;height:5px;border-radius:3px;
+  background:linear-gradient(90deg,#fff,#ffe98a 60%,rgba(255,233,138,0));
+  box-shadow:0 0 8px #ffe98a, 0 0 16px rgba(240,181,58,.6);
+  transform:translate(-50%,-50%) rotate(var(--ang,0deg));
+  animation:bulletTrace .3s linear forwards
+}
+@keyframes bulletTrace{
+  0%   {transform:translate(-50%,-50%) rotate(var(--ang,0deg)) translate(0,0)}
+  100% {transform:translate(-50%,-50%) rotate(var(--ang,0deg)) translate(var(--dx),var(--dy));opacity:0}
+}
+/* Miss mark — small puff + 'MISS!' tag where the overshoot lands */
+.bullet-miss-mark{
+  position:absolute;z-index:8;pointer-events:none;
+  transform:translate(-50%,-50%);
+  animation:missMark .65s ease-out forwards;
+  display:flex;flex-direction:column;align-items:center;gap:2px
+}
+.bullet-miss-mark .ib-star{font-size:18px;color:#e2484d;text-shadow:0 0 6px rgba(0,0,0,.6)}
+.bullet-miss-mark .ib-label{
+  font-family:Georgia,serif;font-weight:800;color:#e2484d;
+  font-size:13px;letter-spacing:1px;text-shadow:0 0 6px rgba(0,0,0,.7)
+}
+@keyframes missMark{
+  0%   {opacity:0;transform:translate(-50%,-50%) scale(.4)}
+  30%  {opacity:1;transform:translate(-50%,-50%) scale(1.2)}
+  100% {opacity:0;transform:translate(-50%,-70%) scale(1)}
+}
 .shake{animation:shake .4s}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(5px)}}
 .hit{animation:hit .45s}
@@ -230,6 +450,30 @@ button{font-family:inherit;cursor:pointer;border:none;outline:none}
 @keyframes lunge{0%{transform:translateX(0)}45%{transform:translateX(38px) rotate(-4deg)}100%{transform:translateX(0)}}
 .fall{animation:fall 1s forwards}
 @keyframes fall{to{transform:translateY(60px) rotate(82deg);opacity:0}}
+.answer-flash{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  z-index:50;font-family:var(--creep);font-size:42px;font-weight:900;
+  padding:14px 32px;border-radius:18px;letter-spacing:2px;line-height:1;
+  pointer-events:none;animation:flashIn 1.4s ease-out forwards;
+  white-space:nowrap
+}
+.answer-flash.ok{
+  color:#dafde2;background:rgba(70,196,106,.22);
+  border:3px solid var(--good);text-shadow:0 0 18px var(--good)
+}
+.answer-flash.bad{
+  color:#ffd6d8;background:rgba(226,72,77,.28);
+  border:3px solid var(--bad);text-shadow:0 0 18px var(--bad)
+}
+@keyframes flashIn{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}
+  15%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}
+  30%{transform:translate(-50%,-50%) scale(1)}
+  80%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1.05)}
+}
+@media(max-width:600px){.answer-flash{font-size:34px;padding:12px 22px}}
+
 .fx{
   position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);
   font-family:var(--creep);font-size:46px;font-weight:900;pointer-events:none;
@@ -329,6 +573,40 @@ button{font-family:inherit;cursor:pointer;border:none;outline:none}
 @keyframes pop2{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
 .modal .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 
+/* ---------- Mansion intro story ---------- */
+.cinematic-overlay{position:fixed;inset:0;background:#000;z-index:120;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;animation:fade .4s}
+.cinematic-bg{position:absolute;inset:0;opacity:.30;line-height:0}
+.cinematic-bg svg{width:100%;height:100%;display:block;object-fit:cover}
+.cinematic-vignette{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 45%,transparent 18%,rgba(0,0,0,.92) 95%);pointer-events:none}
+.cinematic-content{
+  position:relative;z-index:2;max-width:600px;width:100%;text-align:center;
+  background:rgba(8,4,16,.7);border:1px solid var(--border);border-radius:20px;
+  padding:28px 24px;box-shadow:var(--shadow);backdrop-filter:blur(2px)
+}
+.cinematic-text{
+  font-family:var(--creep);font-size:22px;line-height:1.55;color:#ece6f5;
+  text-shadow:0 0 18px rgba(177,18,43,.45);min-height:140px;
+  display:flex;flex-direction:column;justify-content:center;
+  animation:slideFadeIn .55s ease-out
+}
+.cinematic-text h3{
+  font-family:var(--creep);font-size:32px;margin-bottom:14px;color:var(--gold);
+  text-shadow:0 0 18px rgba(232,178,58,.55);letter-spacing:1px
+}
+.cinematic-text em{color:#cdbfe6;font-style:italic;font-weight:600}
+.cinematic-text b{color:var(--blood-bright)}
+.cinematic-controls{display:flex;gap:12px;justify-content:center;margin-top:22px;flex-wrap:wrap}
+.cinematic-progress{display:flex;gap:5px;justify-content:center;margin-top:14px}
+.cin-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.18);transition:all .25s}
+.cin-dot.done{background:rgba(232,178,58,.5)}
+.cin-dot.active{background:var(--gold);transform:scale(1.5);box-shadow:0 0 6px var(--gold)}
+@keyframes slideFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.cinematic-content.shake{animation:shake .5s}
+@media(max-width:600px){
+  .cinematic-text{font-size:18px}
+  .cinematic-text h3{font-size:26px}
+}
+
 /* escape cinematic */
 .cinematic{position:fixed;inset:0;background:#000;z-index:90;display:flex;align-items:center;justify-content:center;flex-direction:column}
 .cinematic .scene{position:relative;width:min(560px,92vw)}
@@ -357,5 +635,6 @@ button{font-family:inherit;cursor:pointer;border:none;outline:none}
   .hud{gap:10px;padding:10px 12px}
   .qtext{font-size:17px}
   .fighter.monster{width:130px}
+  .fighter.monster.boss{width:270px}
   .fighter.player{width:92px}
 }

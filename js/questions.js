@@ -691,7 +691,7 @@
     { q: "Which spelling is correct?", options: ["important", "importent", "impurtant", "imporant"], answer: 0 },
     { q: "Which spelling is correct?", options: ["library", "libary", "librery", "libreary"], answer: 0 },
     { q: "Which spelling is correct?", options: ["accident", "acident", "accidant", "axident"], answer: 0 },
-    { q: "Which spelling is correct?", options: ["calendar", "calender", "calandar", "calandar"], answer: 0 },
+    { q: "Which spelling is correct?", options: ["calendar", "calender", "calandar", "calenndar"], answer: 0 },
     { q: "Complete the sentence: \"I have a ___ sister called Sarah.\"", options: ["cousin", "cusin", "cousine", "cuzin"], answer: 0 },
     { q: "Complete the sentence: \"Klera likes the pretty ___ in her room.\"", options: ["crystal", "krystal", "cristal", "crystle"], answer: 0 },
     { q: "Complete the sentence: \"The footpath was very ___ and bumpy.\"", options: ["rough", "ruff", "rugh", "rouf"], answer: 0 },
@@ -728,14 +728,47 @@
 
   const QUESTIONS = { nouns, verbs, present_tense, pronouns, adjectives, punctuation, sentence_order, comprehension, spelling, grammar_logic };
 
-  // a fresh, shuffled, non-repeating pool for one battle
-  QUESTIONS.pool = function (topic) {
-    if (topic === "mixed") {
-      let all = [];
-      Object.keys(QUESTIONS).forEach(k => { if (Array.isArray(QUESTIONS[k])) all = all.concat(QUESTIONS[k]); });
-      return shuffle(all);
+  // Returns a clone of `q` with its options re-ordered randomly and the
+  // `answer` index updated to still point at the correct option text. Builder
+  // questions (word-rearrangement) are returned untouched.
+  function shuffleQuestion(q) {
+    if (!q || !q.options || q.builder) return q;
+    const order = shuffle(q.options.map((_, i) => i));
+    return Object.assign({}, q, {
+      options: order.map(i => q.options[i]),
+      answer:  order.indexOf(q.answer)
+    });
+  }
+
+  // Per-mansion question overrides. When a mansion supplies its own bank for
+  // a given topic, that bank is used instead of the default Year-3 bank.
+  // Currently the Zombie Shopping Mall ships a Year-4 bank for 6 topics
+  // (loaded by questions_mall.js as window.QUESTIONS_MALL).
+  function bankFor(topic, mansionId) {
+    if (mansionId === "zombie_mall" && window.QUESTIONS_MALL && Array.isArray(window.QUESTIONS_MALL[topic])) {
+      return window.QUESTIONS_MALL[topic];
     }
-    return shuffle(QUESTIONS[topic] || nouns);
+    return QUESTIONS[topic];
+  }
+
+  // a fresh, shuffled, non-repeating pool for one battle — each question's
+  // option order is randomised too, so the right answer isn't always "A".
+  // mansionId (optional) routes some topics to a per-mansion bank.
+  QUESTIONS.pool = function (topic, mansionId) {
+    let all;
+    if (topic === "mixed") {
+      all = [];
+      // Boss rooms mix every topic — include any per-mansion override so the
+      // boss in the mall draws from Year-4 questions for the overridden topics.
+      Object.keys(QUESTIONS).forEach(k => {
+        if (!Array.isArray(QUESTIONS[k])) return;
+        const bank = bankFor(k, mansionId) || QUESTIONS[k];
+        all = all.concat(bank);
+      });
+    } else {
+      all = bankFor(topic, mansionId) || nouns;
+    }
+    return shuffle(all).map(shuffleQuestion);
   };
   QUESTIONS.shuffle = shuffle;
   window.QUESTIONS = QUESTIONS;

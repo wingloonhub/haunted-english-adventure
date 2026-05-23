@@ -150,17 +150,27 @@
       STORE.save();
     },
 
-    recordAnswer(topic, correct, qtext) {
+    recordAnswer(topic, correct, qtext, mansionId) {
       if (!topic) return;
       const p = STORE.active(); if (!p) return;
-      if (!p.stats) p.stats = { byTopic: {}, recentWrong: [] };
+      if (!p.stats) p.stats = { byTopic: {}, byMansion: {}, recentWrong: [] };
+      // Aggregate across all mansions (kept for back-compat with existing report code)
       const t = p.stats.byTopic;
       if (!t[topic]) t[topic] = { attempts: 0, correct: 0 };
       t[topic].attempts++;
       if (correct) t[topic].correct++;
-      else {
+      // Per-mansion split — each map has different difficulty, so parents can see weaknesses by map.
+      if (mansionId) {
+        if (!p.stats.byMansion) p.stats.byMansion = {};
+        if (!p.stats.byMansion[mansionId]) p.stats.byMansion[mansionId] = { byTopic: {} };
+        const mt = p.stats.byMansion[mansionId].byTopic;
+        if (!mt[topic]) mt[topic] = { attempts: 0, correct: 0 };
+        mt[topic].attempts++;
+        if (correct) mt[topic].correct++;
+      }
+      if (!correct) {
         p.stats.recentWrong = p.stats.recentWrong || [];
-        p.stats.recentWrong.unshift({ topic, q: qtext, ts: Date.now() });
+        p.stats.recentWrong.unshift({ topic, q: qtext, ts: Date.now(), mansionId });
         p.stats.recentWrong = p.stats.recentWrong.slice(0, 60);
       }
       STORE.save();

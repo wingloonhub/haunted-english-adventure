@@ -15,12 +15,10 @@
     return { tag: "weak", txt: "Weak — focus here", cls: "tag-weak", color: "#e2484d" };
   }
 
-  function build() {
-    const active = STORE.active();
-    const stats = (active && active.stats) || { byTopic: {}, recentWrong: [] };
-    const by = stats.byTopic || {};
-    const rows = Object.keys(LABELS).map(topic => {
-      const s = by[topic] || { attempts: 0, correct: 0 };
+  // Builds rows[] for a `byTopic` map (used both for the aggregate and each mansion split).
+  function rowsFor(byTopic) {
+    return Object.keys(LABELS).map(topic => {
+      const s = (byTopic || {})[topic] || { attempts: 0, correct: 0 };
       const acc = s.attempts ? s.correct / s.attempts : 0;
       return {
         topic, label: LABELS[topic],
@@ -28,6 +26,12 @@
         acc, pct: Math.round(acc * 100), band: band(acc, s.attempts)
       };
     });
+  }
+
+  function build() {
+    const active = STORE.active();
+    const stats = (active && active.stats) || { byTopic: {}, byMansion: {}, recentWrong: [] };
+    const rows = rowsFor(stats.byTopic);
     const played = rows.filter(r => r.attempts > 0);
     const totalQ = played.reduce((a, r) => a + r.attempts, 0);
     const totalC = played.reduce((a, r) => a + r.correct, 0);
@@ -48,11 +52,47 @@
         `No clear weak topic yet — performance is fairly even. Keep playing for sharper insights.`;
     }
 
+    // Per-mansion breakdowns (different maps have different difficulty).
+    // Order them by the canonical DATA.MANSIONS order so the easier map shows first.
+    const byMansion = [];
+    const mansionList = (window.DATA && DATA.MANSIONS) ? DATA.MANSIONS : [];
+    const seen = {};
+    mansionList.forEach(m => {
+      seen[m.id] = true;
+      const mStats = (stats.byMansion || {})[m.id];
+      if (!mStats || !mStats.byTopic) return;
+      const mRows = rowsFor(mStats.byTopic);
+      const mPlayed = mRows.filter(r => r.attempts > 0);
+      if (!mPlayed.length) return;
+      const mQ = mPlayed.reduce((a, r) => a + r.attempts, 0);
+      const mC = mPlayed.reduce((a, r) => a + r.correct, 0);
+      const mWeak = mPlayed.filter(r => r.attempts >= 3).sort((a, b) => a.acc - b.acc).slice(0, 3).filter(r => r.acc < 0.7);
+      byMansion.push({
+        id: m.id, name: m.name, rows: mRows, played: mPlayed,
+        totalQ: mQ, totalC: mC, pct: mQ ? Math.round(mC / mQ * 100) : 0,
+        weakest: mWeak
+      });
+    });
+    // Any orphan mansion ids still in stats (e.g. removed mansions) — append at the end.
+    Object.keys((stats.byMansion || {})).forEach(mid => {
+      if (seen[mid]) return;
+      const mStats = stats.byMansion[mid];
+      const mRows = rowsFor(mStats.byTopic);
+      const mPlayed = mRows.filter(r => r.attempts > 0);
+      if (!mPlayed.length) return;
+      const mQ = mPlayed.reduce((a, r) => a + r.attempts, 0);
+      const mC = mPlayed.reduce((a, r) => a + r.correct, 0);
+      byMansion.push({ id: mid, name: mid, rows: mRows, played: mPlayed, totalQ: mQ, totalC: mC, pct: mQ ? Math.round(mC / mQ * 100) : 0, weakest: [] });
+    });
+
     const recent = (stats.recentWrong || []).slice(0, 12).map(r => ({
-      label: LABELS[r.topic] || r.topic, q: r.q, when: timeAgo(r.ts)
+      label: LABELS[r.topic] || r.topic,
+      q: r.q,
+      when: timeAgo(r.ts),
+      mansion: r.mansionId ? ((window.DATA && DATA.mansion(r.mansionId) || {}).name || r.mansionId) : ""
     }));
 
-    return { rows, played, totalQ, totalC, weakest, summary, recent };
+    return { rows, played, totalQ, totalC, weakest, summary, recent, byMansion };
   }
 
   function timeAgo(ts) {
