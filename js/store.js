@@ -142,12 +142,64 @@
       return p.mansions[mid];
     },
 
-    // wipe one mansion's run progress (player died) — coins & keys lost
+    // wipe one mansion's run progress — kept for emergencies / "reset" buttons.
     resetMansion(mid) {
       const m = STORE.mansion(mid);
       m.coins = 0; m.keys = []; m.cleared = []; m.items = {}; m.burgerBonus = 0; m.shieldsLeft = rollShields();
       // keep "escaped" so a finished mansion still shows as won
       STORE.save();
+    },
+
+    // Softer death penalty: lose up to N keys (from the player's WEAKEST topics
+    // for this map, so the lost rooms are the ones they need to re-practice) +
+    // a coin chunk; items + burgerBonus stay.
+    applyDefeatPenalty(mid, opts) {
+      const p = STORE.active();
+      const m = STORE.mansion(mid);
+      opts = opts || {};
+      const maxKeyLoss = (opts.maxKeyLoss != null) ? opts.maxKeyLoss : 5;
+      const coinLoss   = (opts.coinLoss   != null) ? opts.coinLoss   : 100;
+      const coinsBefore = m.coins || 0;
+      const keysBefore  = (m.keys || []).slice();
+
+      // Per-mansion topic accuracy table (this map's difficulty matters more
+      // than the aggregate — Year-4 mall topics rank separately from Year-3
+      // haunted-mansion topics).
+      const mStats = (p && p.stats && p.stats.byMansion && p.stats.byMansion[mid]) || { byTopic: {} };
+      const tStats = mStats.byTopic || {};
+
+      // Score each owned key by the topic accuracy of its room. Lower acc =
+      // weaker topic = picked first for loss. Topics with no stats yet are
+      // treated as full-accuracy (acc=1) so they're picked LAST.
+      const ranked = keysBefore.map((roomId, idx) => {
+        const room  = (window.DATA && DATA.room) ? (DATA.room(mid, roomId) || DATA.room(roomId)) : null;
+        const topic = room && room.topic;
+        const ts    = (topic && tStats[topic]) || { attempts: 0, correct: 0 };
+        const acc   = ts.attempts > 0 ? ts.correct / ts.attempts : 1;
+        return { roomId, roomName: room && room.name, topic, attempts: ts.attempts, correct: ts.correct, acc, idx };
+      });
+      // Sort: weakest first; tie-break by most-recently-won first (idx desc)
+      // so a fresh win is preferred over an old one at the same accuracy.
+      ranked.sort((a, b) => (a.acc - b.acc) || (b.idx - a.idx));
+
+      const lossCount = Math.min(maxKeyLoss, ranked.length);
+      const keysLostDetail = ranked.slice(0, lossCount);
+      const lostIds = keysLostDetail.map(k => k.roomId);
+      m.keys    = keysBefore.filter(k => lostIds.indexOf(k) === -1);
+      m.cleared = (m.cleared || []).filter(id => lostIds.indexOf(id) === -1);
+
+      const coinsLost = Math.min(coinsBefore, coinLoss);
+      m.coins = Math.max(0, coinsBefore - coinLoss);
+      STORE.save();
+
+      return {
+        keysLost: lostIds,
+        keysLostCount: lostIds.length,
+        keysLostDetail,                 // [{ roomId, roomName, topic, attempts, correct, acc }, ...]
+        keysRemaining: m.keys.length,
+        coinsLost,
+        coinsRemaining: m.coins
+      };
     },
 
     recordAnswer(topic, correct, qtext, mansionId) {

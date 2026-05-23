@@ -1039,14 +1039,44 @@
 
   function onDefeat() {
     SOUND.play("gameOver");
+    // Apply the soft penalty NOW (before showing the modal) so we can report
+    // the exact loss to the player. Items + the +1-life buff are preserved.
+    const penalty = GAME.onDefeat();
+    const keysLost  = (penalty && penalty.keysLostCount) || 0;
+    const coinsLost = (penalty && penalty.coinsLost) || 0;
+    const mansionName = (GAME.mansion && GAME.mansion.name) || "this map";
+    const lines = [];
+
+    if (keysLost > 0) {
+      // Build a "Topic (N%)" list so the kid sees exactly which topics they
+      // need more practice on. Topics with no stats yet show as "new".
+      const tLabels = (window.REPORT && REPORT.LABELS) || {};
+      const detail = (penalty.keysLostDetail || []).map(d => {
+        const label = (d.topic && tLabels[d.topic]) || d.topic || "—";
+        const pct   = d.attempts > 0 ? Math.round(d.acc * 100) + "%" : "new";
+        return `${esc(d.roomName || d.roomId)} <span class="muted" style="font-size:13px">· ${esc(label)} (${pct})</span>`;
+      });
+      lines.push(`🗝️ Lost <b>${keysLost} key${keysLost === 1 ? "" : "s"}</b> from your weakest topics — those rooms are open again:`);
+      lines.push(`<ul style="margin:6px 0 8px 22px;padding:0;line-height:1.6">${detail.map(d => `<li>${d}</li>`).join("")}</ul>`);
+    } else {
+      lines.push(`🗝️ No keys lost (you didn't have any yet).`);
+    }
+    if (coinsLost > 0) {
+      lines.push(`🪙 Lost <b>${coinsLost} coin${coinsLost === 1 ? "" : "s"}</b>${penalty.coinsRemaining === 0 ? " (purse is now empty)" : ""}.`);
+    } else {
+      lines.push(`🪙 No coins lost.`);
+    }
+    lines.push(`🎒 Your items are safe.`);
+
     document.body.insertAdjacentHTML("beforeend", `
-      <div class="overlay" id="ov"><div class="modal">
+      <div class="overlay" id="ov"><div class="modal" style="max-width:520px">
         <div class="big-emoji">💀</div>
         <h2>Game Over</h2>
-        <p>Your lives reached zero and the player falls. The Haunted Monster Mansion <b>resets</b> — all coins and keys for this mansion are lost. Be braver next time!</p>
-        <div class="row"><button class="btn primary" id="ovBack">Restart Mansion</button></div>
+        <p>Your lives reached zero in <b>${esc(mansionName)}</b>. Here's what happened:</p>
+        <div style="text-align:left;line-height:1.8">${lines.join("<br/>")}</div>
+        <div class="row" style="margin-top:14px"><button class="btn primary" id="ovBack">Back to Map</button></div>
       </div></div>`);
-    $("#ovBack").onclick = () => { $("#ov").remove(); GAME.onDefeat(); renderMap(); };
+    $("#ovBack").onclick = () => { $("#ov").remove(); renderMap(); };
   }
 
   function escapeCinematic() {

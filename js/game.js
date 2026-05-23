@@ -228,10 +228,13 @@
     // player chose to leave a room mid-fight (no rewards, no penalty)
     quitBattle() { GAME.battle = null; },
 
-    // called by UI when the player has lost all lives in a key/boss room
+    // called by UI when the player has lost all lives in a key/boss room.
+    // Softer penalty (not a full mansion reset): lose up to 5 most-recent keys
+    // + 100 coins (clamped to 0); items + the +1-life buff stay.
     onDefeat() {
-      STORE.resetMansion(mansionId);
+      const penalty = STORE.applyDefeatPenalty(mansionId);
       GAME.battle = null;
+      return penalty;
     },
 
     // called by UI when a loot-room battle ended without coins (3 wrongs).
