@@ -614,33 +614,58 @@
     });
   }
 
-  // Click chips -> append to built sentence. Undo pops last. Submit checks vs target.
+  // Tap a bank chip → it moves into the built sentence (in order). Tap a placed
+  // tile → it returns to the bank. Undo pops the last placement. Submit checks
+  // against the target sentence.
   function wireBuilder(words, target) {
-    const picked = [];
+    const picked = [];                       // array of indices into `words[]`
     const builtEl = $("#built");
     const undoBtn = $("#undo");
-    const subBtn = $("#submitBuild");
-    const chips = screen().querySelectorAll(".word-chip");
+    const subBtn  = $("#submitBuild");
+
     function refresh() {
-      builtEl.innerHTML = picked.length
-        ? picked.map(i => `<span class="built-word">${esc(words[i])}</span>`).join(" ")
-        : `<span class="placeholder">Tap the words in the correct order…</span>`;
+      // Render the built area — each tile is its own button so kids can tap to
+      // remove an individual word (not just the most recent one).
+      if (picked.length === 0) {
+        builtEl.innerHTML = `<span class="placeholder">Tap the words in the correct order. Tap a placed word to send it back.</span>`;
+      } else {
+        builtEl.innerHTML = picked.map((wi, pos) =>
+          `<button type="button" class="built-word" data-pos="${pos}">${esc(words[wi])}</button>`
+        ).join(" ");
+      }
+      // Sync the bank — chips for already-placed words are dimmed/disabled.
+      screen().querySelectorAll(".word-chip").forEach(chip => {
+        const i = parseInt(chip.dataset.i, 10);
+        chip.classList.toggle("used", picked.indexOf(i) > -1);
+      });
       undoBtn.disabled = busy || picked.length === 0;
-      subBtn.disabled = busy || picked.length !== words.length;
+      subBtn.disabled  = busy || picked.length !== words.length;
+      // Bind tap-to-remove on every placed tile.
+      builtEl.querySelectorAll(".built-word").forEach(btn => {
+        btn.onclick = () => {
+          if (busy) return;
+          const pos = parseInt(btn.dataset.pos, 10);
+          if (isNaN(pos)) return;
+          picked.splice(pos, 1);
+          refresh();
+        };
+      });
     }
-    chips.forEach(chip => {
+
+    // Tap a bank chip → place the word.
+    screen().querySelectorAll(".word-chip").forEach(chip => {
       chip.onclick = () => {
-        if (busy || chip.classList.contains("used")) return;
-        chip.classList.add("used");
-        picked.push(parseInt(chip.dataset.i, 10));
+        if (busy) return;
+        const i = parseInt(chip.dataset.i, 10);
+        if (picked.indexOf(i) > -1) return;   // already in the built area
+        picked.push(i);
         refresh();
       };
     });
+
     undoBtn.onclick = () => {
       if (busy || picked.length === 0) return;
-      const last = picked.pop();
-      const chip = screen().querySelector(`.word-chip[data-i="${last}"]`);
-      if (chip) chip.classList.remove("used");
+      picked.pop();
       refresh();
     };
     subBtn.onclick = () => {
@@ -649,6 +674,8 @@
       const correct = built === target;
       onAnswer(0, subBtn, correct, { target, built });
     };
+
+    refresh();
   }
 
   function answerFlash(correct) {
