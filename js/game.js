@@ -210,15 +210,17 @@
     _grantWin(b) {
       const p = GAME.progress();
       const firstClear = p.cleared.indexOf(b.room.id) === -1;
+      // Per-room coin override (e.g. Gift Wrap pays only 10) — falls back to mansion default.
+      const reward = (b.room.coinReward != null) ? b.room.coinReward : M().coinsPerKill;
       if (b.room.type === "boss") {
-        if (!p.escaped) { p.escaped = true; p.coins += M().coinsPerKill; }
+        if (!p.escaped) { p.escaped = true; p.coins += reward; }
         if (p.cleared.indexOf(b.room.id) === -1) p.cleared.push(b.room.id);
       } else if (b.room.type === "loot") {
-        // Study / Gym rooms — repeatable! Always award coins, never mark as cleared.
-        p.coins += M().coinsPerKill;
+        // Study / Gym / Gift Wrap rooms — repeatable! Always award coins, never mark as cleared.
+        p.coins += reward;
       } else if (firstClear) {
         // Key rooms — only grant rewards on the first clear.
-        p.coins += M().coinsPerKill;
+        p.coins += reward;
         p.cleared.push(b.room.id);
         if (b.room.type === "key" && p.keys.indexOf(b.room.id) === -1) p.keys.push(b.room.id);
       }

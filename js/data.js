@@ -100,6 +100,7 @@
       ] },
     { id: "mall_game_shop",     name: "Game Shop",              type: "loot", topic: "grammar_logic",  topicLabel: "Grammar Logic",         monster: null,         monsterName: null,                   hp: 10 },
     { id: "mall_sports",        name: "Sports Shop",            type: "loot", topic: "present_tense",  topicLabel: "Present & Past Tense",  monster: null,         monsterName: null,                   hp: 10 },
+    { id: "mall_gift_wrap",     name: "Gift Wrap Zombie Shop",  type: "loot", topic: "noun_picker",    topicLabel: "Noun Picker",           monster: null,         monsterName: null,                   hp: 1, coinReward: 10 },
     { id: "mall_supermarket",   name: "Supermarket",            type: "shop", topic: null,             topicLabel: "Shop",                  monster: null,         monsterName: null,                   hp: 0 },
     { id: "mall_dead_hall",     name: "Dead Mall Hall",         type: "boss", topic: "mixed",          topicLabel: "Final Boss — Everything", monster: "zombie_hulk", monsterName: "The Zombie Hulk King", hp: 20 }
   ];

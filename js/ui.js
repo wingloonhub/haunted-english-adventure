@@ -104,7 +104,7 @@
     screen().innerHTML = `
       <div class="center-wrap"><div class="card">
         <div class="title">The Haunted<br/>English Adventure</div>
-        <div class="subtitle">Welcome back, <b>${esc(name)}</b>. ${p.escaped ? "You have escaped this mansion — but coins remain to spend." : "Ten monsters guard ten keys. Find them all to face The Mansion King."}</div>
+        <div class="subtitle">Welcome back, <b>${esc(name)}</b>. Pick a horror adventure and find every key to face the final boss.</div>
         <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px">
           <button class="btn primary full" id="play">🕯️ Choose Your Adventure</button>
           <button class="btn full" id="report">📊 Parent Report</button>
@@ -334,7 +334,10 @@
       else if (st === "escaped") badge = `<span class="badge cleared">★ Escaped</span>`;
       else if (st === "locked") badge = `<span class="badge locked">🔒 Need ${GAME.mansion.keyRoomIds.length} keys</span>`;
       else if (st === "shop") badge = `<span class="badge shop">Shop</span>`;
-      else if (st === "loot") badge = `<span class="badge loot">Loot</span>`;
+      else if (st === "loot") {
+        const reward = (r.coinReward != null) ? r.coinReward : GAME.mansion.coinsPerKill;
+        badge = `<span class="badge loot">Loot · +${reward} 🪙</span>`;
+      }
       else if (st === "boss") badge = `<span class="badge boss">☠ Boss</span>`;
       const sub = r.type === "shop" ? "Spend your coins" :
         r.type === "boss" ? "Mixed — everything" : r.topicLabel;
@@ -347,11 +350,14 @@
         </div>
       </div>`;
     }).join("");
+    const bossRoom = GAME.mansion.rooms.find(r => r.type === "boss");
+    const bossName = bossRoom ? bossRoom.name : "the final room";
+    const keyTotal = GAME.mansion.keyRoomIds.length;
     screen().innerHTML = `
-      ${hudHTML({ exit: true, exitLabel: "← Mansions" })}
+      ${hudHTML({ exit: true, exitLabel: "← Adventures" })}
       <div class="page">
-        <h1>Haunted Monster Mansion</h1>
-        <div class="lead">Choose a room. Find all 🗝️ 10 keys to unlock The Basement.</div>
+        <h1>${esc(GAME.mansion.name)}</h1>
+        <div class="lead">Choose a room. Find all 🗝️ ${keyTotal} keys to unlock <b>${esc(bossName)}</b>.</div>
         <div class="rooms-grid">${cards}</div>
       </div>`;
     $("#hudExit").onclick = renderMansionSelect;
@@ -359,7 +365,7 @@
       c.onclick = () => {
         const room = DATA.room(c.dataset.room);
         const st = GAME.roomStatus(room);
-        if (st === "locked") { toast("The Basement is locked. Find all " + GAME.mansion.keyRoomIds.length + " keys first!", "bad"); return; }
+        if (st === "locked") { toast(bossName + " is locked. Find all " + keyTotal + " keys first!", "bad"); return; }
         if (room.type === "shop") return renderStore();
         if (st === "cleared" || st === "escaped") {
           showConfirm(`${esc(room.name)} is cleared.`, "Replay this room for practice? (No new coins or keys.)", "Replay", () => beginBattle(room.id));
@@ -560,6 +566,10 @@
                 <span class="nm">${esc(playerName)}</span>
                 <div class="${mini.artClass}" id="${mini.artId}">${mini.pose(progress, mini.idle, gender)}</div>
               </div>
+            </div>` : !b.monster ? `
+            <!-- Solo room (no enemy) — render only the player. -->
+            <div class="fighters solo-fighters">
+              <div class="fighter player" id="fPlayer"><span class="nm">${esc(playerName)}</span>${ART.player(GAME.mansion.weapon, gender)}</div>
             </div>` : `
             <div class="fighters">
               <div class="fighter player" id="fPlayer"><span class="nm">${esc((STORE.active() || {}).name || "You")}</span>${ART.player(b.armedSling ? (GAME.mansion.heavyWeaponItem || "sling") : GAME.mansion.weapon, (STORE.active() || {}).gender)}</div>
@@ -572,7 +582,7 @@
             </div>`}
         </div>
         <div class="qpanel"><div class="qwrap">
-          <div class="qtag">${esc(b.room.topicLabel)} · ${b.room.type === "boss" ? "FINAL BOSS" : esc(b.room.name)}</div>
+          <div class="qtag">${esc(b.room.topicLabel)} · ${b.room.type === "boss" ? "FINAL BOSS" : esc(b.room.name)}${b.room.type === "loot" ? ` · <span class="qtag-reward">Win to earn +${(b.room.coinReward != null ? b.room.coinReward : GAME.mansion.coinsPerKill)} 🪙</span>` : ""}</div>
           ${q.passage ? `<div style="background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:12px;max-height:170px;overflow:auto;font-size:14px;line-height:1.55;white-space:pre-line">${esc(q.passage)}</div>` : ""}
           <div class="qtext">${esc(q.q).replace(/___/g, '<span class="blank">?</span>')}</div>
           ${q.builder ? `<div class="builder">
@@ -581,6 +591,15 @@
             <div class="builder-actions">
               <button class="btn ghost sm" id="undo" disabled>↶ Undo</button>
               <button class="btn primary sm" id="submitBuild" disabled>Submit answer</button>
+            </div>
+          </div>` : q.picker ? `<div class="picker">
+            <div class="gift-grid" id="giftGrid">
+              ${(q.boxes || []).map((w, i) => `<button class="gift-box" data-i="${i}"><span class="gb-word">${esc(w)}</span></button>`).join("")}
+            </div>
+            <div class="builder-actions">
+              <span class="picker-counter" id="pickCount"><b>0</b> / ${(q.nouns || []).length} picked</span>
+              <button class="btn ghost sm" id="clearPick" disabled>↺ Clear</button>
+              <button class="btn primary sm" id="submitPick" disabled>Wrap & Submit</button>
             </div>
           </div>` : `<div class="opts" id="opts">
             ${q.options.map((o, i) => `<button class="opt" data-i="${i}"><span class="letter">${"ABCD"[i]}</span>${esc(o)}</button>`).join("")}
@@ -602,6 +621,7 @@
       btn.onclick = () => onAnswer(parseInt(btn.dataset.i, 10), btn);
     });
     if (q.builder) wireBuilder(builderWords, q.target);
+    if (q.picker) wirePicker(q);
     screen().querySelectorAll("[data-use]").forEach(btn => {
       btn.onclick = () => {
         const r = GAME.useItem(btn.dataset.use);
@@ -675,6 +695,67 @@
       onAnswer(0, subBtn, correct, { target, built });
     };
 
+    refresh();
+  }
+
+  // Picker: kid taps every gift box that contains a noun, then presses Submit.
+  // Correct = ALL nouns picked AND no non-nouns picked. After submitting, every
+  // box shows its true state for a moment so the kid learns what they missed.
+  function wirePicker(q) {
+    const picked = new Set();               // selected box indices
+    const correctSet = new Set(q.nouns);
+    const target = correctSet.size;
+    const grid = $("#giftGrid");
+    const clearBtn = $("#clearPick");
+    const subBtn   = $("#submitPick");
+    const counter  = $("#pickCount");
+    function refresh() {
+      grid.querySelectorAll(".gift-box").forEach(box => {
+        const i = parseInt(box.dataset.i, 10);
+        box.classList.toggle("selected", picked.has(i));
+      });
+      clearBtn.disabled = busy || picked.size === 0;
+      subBtn.disabled   = busy || picked.size === 0;
+      if (counter) {
+        const n = picked.size;
+        counter.innerHTML = `<b>${n}</b> / ${target} picked`;
+        // colour cue: green when exactly at target, amber when over, default otherwise
+        counter.classList.remove("at-target", "over-target");
+        if (n === target) counter.classList.add("at-target");
+        else if (n > target) counter.classList.add("over-target");
+      }
+    }
+    grid.querySelectorAll(".gift-box").forEach(box => {
+      box.onclick = () => {
+        if (busy) return;
+        if (box.classList.contains("revealed")) return;
+        const i = parseInt(box.dataset.i, 10);
+        if (picked.has(i)) picked.delete(i); else picked.add(i);
+        refresh();
+      };
+    });
+    clearBtn.onclick = () => {
+      if (busy) return;
+      picked.clear();
+      refresh();
+    };
+    subBtn.onclick = () => {
+      if (busy) return;
+      // Correct iff the picked set EQUALS the noun set.
+      let correct = (picked.size === correctSet.size);
+      if (correct) for (const i of picked) if (!correctSet.has(i)) { correct = false; break; }
+      // Visual reveal so kids learn what they missed / over-picked.
+      grid.querySelectorAll(".gift-box").forEach(box => {
+        const i = parseInt(box.dataset.i, 10);
+        const isNoun = correctSet.has(i);
+        const wasPicked = picked.has(i);
+        box.classList.add("revealed");
+        if (isNoun && wasPicked) box.classList.add("ok");
+        else if (isNoun && !wasPicked) box.classList.add("missed");
+        else if (!isNoun && wasPicked) box.classList.add("bad");
+      });
+      onAnswer(0, subBtn, correct, { picker: true });
+    };
     refresh();
   }
 
@@ -1022,10 +1103,10 @@
         <div class="big-emoji">${emoji}</div>
         <h2>${esc(title)}</h2>
         <p>${esc(ROOM_WIN[room.id] || "The monster falls!")}<br/><br/>
-          ${gotKey ? `You earned the <b>${esc(room.name)} key</b> and ` : "You earned "}<b>+30 🪙 coins</b>.
+          ${gotKey ? `You earned the <b>${esc(room.name)} key</b> and ` : "You earned "}<b>+${(room.coinReward != null ? room.coinReward : GAME.mansion.coinsPerKill)} 🪙 coins</b>.
           ${gotKey ? `<br/><b>${p.keys.length}/${GAME.mansion.keyRoomIds.length}</b> keys collected.` : ""}
           ${isLoot ? `<br/><br/><span class="muted" style="font-size:13.5px">Come back any time — this room never runs out of coins.</span>` : ""}
-          ${p.keys.length >= GAME.mansion.keyRoomIds.length ? `<br/><br/>🔓 <b>The Basement is now unlocked!</b>` : ""}</p>
+          ${p.keys.length >= GAME.mansion.keyRoomIds.length ? `<br/><br/>🔓 <b>${esc((GAME.mansion.rooms.find(r => r.type === "boss") || {}).name || "The final room")} is now unlocked!</b>` : ""}</p>
         <div class="row">
           ${isLoot ? `<button class="btn gold" id="ovAgain">Play again</button>` : ""}
           <button class="btn primary" id="ovBack">Back to Mansion</button>

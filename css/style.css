@@ -531,6 +531,85 @@ button{font-family:inherit;cursor:pointer;border:none;outline:none}
 .word-chip:hover:not(.used){background:rgba(177,18,43,.22);border-color:var(--blood-bright);transform:translateY(-2px)}
 .word-chip.used{opacity:.18;pointer-events:none;transform:scale(.92)}
 .builder-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+
+/* ---------- Gift-Wrap Zombie Shop: noun-picker mini-game ---------- */
+.picker{display:flex;flex-direction:column;gap:10px}
+/* 40 boxes laid out in a clean grid — 5 cols on desktop, 4 on mobile */
+.gift-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+@media (max-width:520px){ .gift-grid{grid-template-columns:repeat(4,1fr);gap:6px} }
+/* Plain readable boxes — no ribbon pattern, high text contrast */
+.gift-box{
+  position:relative;background:#2a1f44;
+  color:#fff;border:1.5px solid #5a4a78;border-radius:8px;
+  padding:10px 4px;font-size:13px;font-weight:700;
+  cursor:pointer;text-align:center;font-family:inherit;letter-spacing:.2px;
+  transition:transform .12s, background .15s, border-color .15s, box-shadow .15s;
+  box-shadow:0 2px 0 rgba(0,0,0,.35)
+}
+.gift-box .gb-word{display:block}
+.gift-box:hover{transform:translateY(-1px);border-color:#9a8fb3}
+.gift-box:active{transform:translateY(0)}
+.gift-box.selected{
+  background:#f0b53a;color:#2a1a05;border-color:#fff;
+  box-shadow:0 2px 0 rgba(0,0,0,.45),0 0 10px rgba(240,181,58,.55)
+}
+/* Post-submit feedback */
+.gift-box.revealed{pointer-events:none;cursor:default}
+.gift-box.ok{
+  background:#46c46a;color:#0c2914;border-color:#fff;
+  box-shadow:0 2px 0 rgba(0,0,0,.45),0 0 10px rgba(70,196,106,.6)
+}
+.gift-box.ok::after{
+  content:"✓";position:absolute;top:-7px;right:-7px;width:18px;height:18px;
+  border-radius:50%;background:#46c46a;color:#fff;font-size:11px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 4px rgba(0,0,0,.5);border:1.5px solid #fff
+}
+.gift-box.bad{
+  background:#e2484d;color:#3a0a0c;border-color:#fff;
+  box-shadow:0 2px 0 rgba(0,0,0,.45),0 0 10px rgba(226,72,77,.6)
+}
+.gift-box.bad::after{
+  content:"✗";position:absolute;top:-7px;right:-7px;width:18px;height:18px;
+  border-radius:50%;background:#e2484d;color:#fff;font-size:11px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 4px rgba(0,0,0,.5);border:1.5px solid #fff
+}
+.gift-box.missed{
+  background:#e8b23a;color:#3a2810;border-color:#fff
+}
+.gift-box.missed::after{
+  content:"!";position:absolute;top:-7px;right:-7px;width:18px;height:18px;
+  border-radius:50%;background:#e8b23a;color:#1a1208;font-size:11px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;border:1.5px solid #fff
+}
+/* Solo-arena layout (rooms without an enemy — only the player shows) */
+.solo-fighters{justify-content:center !important}
+
+/* Inline reward tag in the battle qtag — shows how many coins this room pays out */
+.qtag-reward{
+  background:rgba(240,181,58,.18);color:#f0d68a;
+  border:1px solid rgba(240,181,58,.5);border-radius:99px;
+  padding:2px 8px;font-size:11.5px;font-weight:800;letter-spacing:.4px
+}
+
+/* Live counter chip — updates as the kid taps boxes */
+.picker-counter{
+  margin-right:auto;align-self:center;
+  font-family:system-ui,sans-serif;font-weight:700;font-size:13px;
+  color:#cfc6dd;background:rgba(255,255,255,.06);
+  border:1px solid var(--border);padding:6px 12px;border-radius:99px;
+  letter-spacing:.4px;transition:background .2s,color .2s,border-color .2s
+}
+.picker-counter b{color:#fff;font-weight:800;font-size:15px}
+.picker-counter.at-target{
+  background:rgba(70,196,106,.22);border-color:rgba(70,196,106,.7);color:#a9eebc
+}
+.picker-counter.at-target b{color:#fff}
+.picker-counter.over-target{
+  background:rgba(226,72,77,.22);border-color:rgba(226,72,77,.7);color:#ffc8ca
+}
+.picker-counter.over-target b{color:#fff}
 .builder-correct{
   font-size:13.5px;color:#ffd8d9;background:rgba(226,72,77,.12);border:1px solid rgba(226,72,77,.4);
   border-radius:10px;padding:8px 12px;margin-top:4px

@@ -1,4 +1,4 @@
-/* questions.js — Year 3 international English question bank.
+﻿/* questions.js — Year 3 international English question bank.
    Built from the exam papers in /Materials and expanded with many
    extra variations so questions never repeat inside a single battle.
    Shape: { q, options:[...], answer:index, passage?:string } */
@@ -30,29 +30,97 @@
 
   /* ============================ NOUNS ============================ */
   const nouns = [
-    { q: "A noun is a naming word. Which word is a NOUN?", options: ["quickly", "garden", "happy", "ran"], answer: 1 },
-    { q: "Find the noun: \"The kitten was shaking in the bush.\"", options: ["was", "shaking", "kitten", "in"], answer: 2 },
-    { q: "Which is a PROPER noun (a special name)?", options: ["city", "Mia", "river", "dog"], answer: 1 },
-    { q: "What is the plural of \"child\"?", options: ["childs", "childes", "children", "childrens"], answer: 2 },
-    { q: "What is the plural of \"mouse\"?", options: ["mouses", "mice", "mouse", "mices"], answer: 1 },
-    { q: "What is the plural of \"box\"?", options: ["boxs", "boxes", "boxen", "box"], answer: 1 },
-    { q: "What is the plural of \"baby\"?", options: ["babys", "babyes", "babies", "babi"], answer: 2 },
-    { q: "Which sentence has a proper noun?", options: ["the boy ran fast", "We went to London.", "she has a cat", "it is cold"], answer: 1 },
-    { q: "Find the noun: \"Ali kicked the bright red ball.\"", options: ["kicked", "bright", "ball", "red"], answer: 2 },
-    { q: "A collective noun names a group. Pick one:", options: ["a swarm of bees", "happily", "running", "very fast"], answer: 0 },
-    { q: "Which word is a noun?", options: ["sleep (the rest you get)", "loudly", "purple", "between"], answer: 0 },
-    { q: "Which group is ALL nouns?", options: ["dog, table, school", "run, jump, sing", "big, red, soft", "he, she, it"], answer: 0 },
-    { q: "What is the plural of \"leaf\"?", options: ["leafs", "leaves", "leafes", "leave"], answer: 1 },
-    { q: "Find the noun: \"They carried the kitten home.\"", options: ["carried", "kitten", "quickly", "they"], answer: 1 },
-    { q: "Which is an abstract noun (a feeling/idea)?", options: ["chair", "kindness", "jump", "green"], answer: 1 },
-    { q: "Pick the proper noun:", options: ["country", "Malaysia", "teacher", "school"], answer: 1 },
-    { q: "What is the plural of \"tooth\"?", options: ["tooths", "teeth", "toothes", "teeths"], answer: 1 },
-    { q: "Which word names a place?", options: ["library", "shout", "tiny", "slowly"], answer: 0 }
-  ].concat(
-    identify("a NOUN (a naming word)", NOUNS, [ADJS, VERBS, ["quickly", "very", "softly", "under", "and", "but"]], 16)
-  );
-
-  /* ============================ VERBS ============================ */
+    { q: "Which word is a noun?", options: ["run", "happy", "cat", "quickly"], answer: 2 },
+    { q: "Which word is a noun?", options: ["jump", "table", "slowly", "beautiful"], answer: 1 },
+    { q: "Which word is a noun?", options: ["school", "walk", "blue", "loudly"], answer: 0 },
+    { q: "Which word is a noun?", options: ["eat", "small", "dog", "fast"], answer: 2 },
+    { q: "Which word is a noun?", options: ["pencil", "sing", "tall", "softly"], answer: 0 },
+    { q: "Which word is a noun?", options: ["sleep", "chair", "angry", "very"], answer: 1 },
+    { q: "Which word is a noun?", options: ["teacher", "write", "red", "quickly"], answer: 0 },
+    { q: "Which word is a noun?", options: ["laugh", "cold", "bird", "slowly"], answer: 2 },
+    { q: "Which word is a noun?", options: ["happy", "playground", "run", "loudly"], answer: 1 },
+    { q: "Which word is a noun?", options: ["car", "drive", "shiny", "fast"], answer: 0 },
+    { q: "The dog is barking. Which word is a noun?", options: ["The", "dog", "is", "barking"], answer: 1 },
+    { q: "My mother is cooking. Which word is a noun?", options: ["My", "mother", "is", "cooking"], answer: 1 },
+    { q: "The boy kicked the ball. Which word is a noun?", options: ["kicked", "the", "ball", "quickly"], answer: 2 },
+    { q: "I saw a bird in the tree. Which word is a noun?", options: ["saw", "bird", "in", "the"], answer: 1 },
+    { q: "The teacher writes on the board. Which word is a noun?", options: ["teacher", "writes", "on", "the"], answer: 0 },
+    { q: "The children played in the park. Which word is a noun?", options: ["played", "children", "in", "the"], answer: 1 },
+    { q: "My father drives a car. Which word is a noun?", options: ["drives", "my", "father", "a"], answer: 2 },
+    { q: "The cat sleeps on the sofa. Which word is a noun?", options: ["cat", "sleeps", "on", "the"], answer: 0 },
+    { q: "The baby drinks milk. Which word is a noun?", options: ["drinks", "baby", "the", "quietly"], answer: 1 },
+    { q: "We went to the zoo. Which word is a noun?", options: ["went", "to", "zoo", "we"], answer: 2 },
+    { q: "What type of noun is “doctor”?", options: ["Person", "Place", "Animal", "Thing"], answer: 0 },
+    { q: "What type of noun is “school”?", options: ["Person", "Place", "Animal", "Thing"], answer: 1 },
+    { q: "What type of noun is “elephant”?", options: ["Person", "Place", "Animal", "Thing"], answer: 2 },
+    { q: "What type of noun is “chair”?", options: ["Person", "Place", "Animal", "Thing"], answer: 3 },
+    { q: "What type of noun is “teacher”?", options: ["Person", "Place", "Animal", "Thing"], answer: 0 },
+    { q: "What type of noun is “beach”?", options: ["Person", "Place", "Animal", "Thing"], answer: 1 },
+    { q: "What type of noun is “tiger”?", options: ["Person", "Place", "Animal", "Thing"], answer: 2 },
+    { q: "What type of noun is “computer”?", options: ["Person", "Place", "Animal", "Thing"], answer: 3 },
+    { q: "What type of noun is “farmer”?", options: ["Person", "Place", "Animal", "Thing"], answer: 0 },
+    { q: "What type of noun is “library”?", options: ["Person", "Place", "Animal", "Thing"], answer: 1 },
+    { q: "Which word is the name of a country?", options: ["city", "Malaysia", "school", "teacher"], answer: 1 },
+    { q: "Which word is the name of a person?", options: ["Ali", "boy", "friend", "child"], answer: 0 },
+    { q: "Which word is the name of a city?", options: ["Kuala Lumpur", "road", "market", "town"], answer: 0 },
+    { q: "Which word is the name of a day?", options: ["morning", "Monday", "night", "week"], answer: 1 },
+    { q: "Which word is the name of a month?", options: ["calendar", "year", "August", "holiday"], answer: 2 },
+    { q: "Which word is the name of a country?", options: ["Japan", "island", "village", "map"], answer: 0 },
+    { q: "Which word is the name of a person?", options: ["girl", "Sarah", "student", "woman"], answer: 1 },
+    { q: "Which word is the name of a place?", options: ["school", "table", "pencil", "rabbit"], answer: 0 },
+    { q: "Which word is the name of a festival?", options: ["party", "birthday", "Hari Raya", "cake"], answer: 2 },
+    { q: "Which word is the name of a shop?", options: ["mall", "shop", "Watsons", "counter"], answer: 2 },
+    { q: "Which word means more than one?", options: ["dog", "dogs", "puppy", "cat"], answer: 1 },
+    { q: "Which word means one only?", options: ["books", "pencils", "apple", "cars"], answer: 2 },
+    { q: "Which word means more than one?", options: ["box", "boxes", "chair", "table"], answer: 1 },
+    { q: "Which word means one only?", options: ["child", "children", "boys", "girls"], answer: 0 },
+    { q: "Which word means more than one?", options: ["baby", "babies", "mother", "father"], answer: 1 },
+    { q: "Which word means one only?", options: ["tooth", "teeth", "feet", "mice"], answer: 0 },
+    { q: "Which word means more than one?", options: ["mouse", "mice", "cat", "dog"], answer: 1 },
+    { q: "Which word means more than one?", options: ["bus", "buses", "car", "van"], answer: 1 },
+    { q: "Which word means one only?", options: ["women", "men", "woman", "children"], answer: 2 },
+    { q: "Which word means more than one?", options: ["leaf", "leaves", "tree", "flower"], answer: 1 },
+    { q: "I drink water from a ________.", options: ["cup", "run", "happy", "quickly"], answer: 0 },
+    { q: "The ________ teaches us English.", options: ["tiger", "teacher", "pencil", "chair"], answer: 1 },
+    { q: "The ________ barks loudly.", options: ["dog", "bird", "fish", "snake"], answer: 0 },
+    { q: "We buy food at the ________.", options: ["market", "bedroom", "pencil", "car"], answer: 0 },
+    { q: "I write with a ________.", options: ["spoon", "pencil", "shoe", "plate"], answer: 1 },
+    { q: "The ________ flies in the sky.", options: ["bird", "fish", "cow", "chair"], answer: 0 },
+    { q: "I sleep on my ________.", options: ["bed", "bag", "book", "bottle"], answer: 0 },
+    { q: "We swim in the ________.", options: ["pool", "kitchen", "classroom", "garden"], answer: 0 },
+    { q: "My books are in my ________.", options: ["bag", "plate", "shoe", "cup"], answer: 0 },
+    { q: "The ________ cooks food in the restaurant.", options: ["driver", "chef", "farmer", "doctor"], answer: 1 },
+    { q: "Which pair are both nouns?", options: ["cat, table", "run, jump", "happy, sad", "quickly, slowly"], answer: 0 },
+    { q: "Which pair are both nouns?", options: ["teacher, school", "eat, drink", "big, small", "fast, slow"], answer: 0 },
+    { q: "Which pair are both animals?", options: ["tiger, elephant", "chair, table", "doctor, nurse", "school, park"], answer: 0 },
+    { q: "Which pair are both places?", options: ["zoo, library", "pencil, ruler", "cat, dog", "mother, father"], answer: 0 },
+    { q: "Which pair are both things?", options: ["book, computer", "Ali, Sarah", "beach, park", "lion, tiger"], answer: 0 },
+    { q: "Which pair are both people?", options: ["doctor, nurse", "zoo, school", "dog, cat", "pen, pencil"], answer: 0 },
+    { q: "Which pair are both nouns?", options: ["apple, banana", "eat, sleep", "beautiful, tall", "loudly, softly"], answer: 0 },
+    { q: "Which pair are both places?", options: ["kitchen, bedroom", "spoon, fork", "tiger, lion", "boy, girl"], answer: 0 },
+    { q: "Which pair are both things?", options: ["ruler, eraser", "teacher, doctor", "park, beach", "bird, fish"], answer: 0 },
+    { q: "Which pair are both animals?", options: ["rabbit, hamster", "cup, plate", "father, mother", "school, mall"], answer: 0 },
+    { q: "Which words are nouns?", options: ["boy, ball", "kicked, the", "the, boy", "kicked, ball"], answer: 0, passage: "The boy kicked the ball." },
+    { q: "Which words are nouns?", options: ["slept, on", "cat, sofa", "the, cat", "on, sofa"], answer: 1, passage: "The cat slept on the sofa." },
+    { q: "Which words are nouns?", options: ["my, baked", "baked, cake", "mother, cake", "mother, baked"], answer: 2, passage: "My mother baked a cake." },
+    { q: "Which words are nouns?", options: ["children, park", "played, in", "the, children", "in, park"], answer: 0, passage: "The children played in the park." },
+    { q: "Which words are nouns?", options: ["put, on", "Ali, book, table", "the, book", "Ali, put, table"], answer: 1, passage: "Ali put the book on the table." },
+    { q: "Which words are nouns?", options: ["teacher, board", "wrote, on", "the, teacher", "wrote, board"], answer: 0, passage: "The teacher wrote on the board." },
+    { q: "Which words are nouns?", options: ["flew, over", "bird, house", "a, bird", "over, house"], answer: 1, passage: "A bird flew over the house." },
+    { q: "Which words are nouns?", options: ["brother, frog", "found, a", "my, brother", "found, frog"], answer: 0, passage: "My brother found a frog." },
+    { q: "Which words are nouns?", options: ["chased, the", "dog, rabbit", "the, dog", "chased, rabbit"], answer: 1, passage: "The dog chased the rabbit." },
+    { q: "Which words are nouns?", options: ["Sarah, pencil, ruler", "bought, and", "pencil, and", "Sarah, bought"], answer: 0, passage: "Sarah bought a pencil and a ruler." },
+    { q: "Which words are nouns?", options: ["baby, milk", "drank, milk", "the, baby", "drank, the"], answer: 0, passage: "The baby drank milk." },
+    { q: "Which words are nouns?", options: ["visited, on", "zoo, Sunday", "we, visited", "the, zoo"], answer: 1, passage: "We visited the zoo on Sunday." },
+    { q: "Which words are nouns?", options: ["farmer, rice", "planted, rice", "the, farmer", "farmer, planted"], answer: 0, passage: "The farmer planted rice." },
+    { q: "Which words are nouns?", options: ["my, opened", "sister, door", "opened, door", "sister, opened"], answer: 1, passage: "My sister opened the door." },
+    { q: "Which words are nouns?", options: ["fish, pond", "swam, in", "the, fish", "in, pond"], answer: 0, passage: "The fish swam in the pond." },
+    { q: "Which words are nouns?", options: ["chef, noodles, kitchen", "cooked, in", "the, chef", "noodles, cooked"], answer: 0, passage: "The chef cooked noodles in the kitchen." },
+    { q: "Which words are nouns?", options: ["lives, in", "lion, jungle", "a, lion", "lives, jungle"], answer: 1, passage: "A lion lives in the jungle." },
+    { q: "Which words are nouns?", options: ["grandmother, storybook", "gave, me", "my, grandmother", "gave, storybook"], answer: 0, passage: "My grandmother gave me a storybook." },
+    { q: "Which words are nouns?", options: ["stopped, near", "bus, school", "the, bus", "near, school"], answer: 1, passage: "The bus stopped near the school." },
+    { q: "Which words are nouns?", options: ["girl, basket, market", "carried, to", "the, girl", "basket, carried"], answer: 0, passage: "The girl carried a basket to the market." }
+  ];
   const verbs = [
     { q: "A verb is an action word. Which word is a VERB?", options: ["table", "jumped", "yellow", "slowly"], answer: 1 },
     { q: "Choose the verb: \"The boy ___ across the road dangerously.\"", options: ["runs", "road", "boy", "dangerous"], answer: 0 },
@@ -206,6 +274,8 @@
     { q: "The farmer ___ vegetables every year.",           options: ["grow", "grows", "growing", "grew"],             answer: 1 },
     { q: "The children ___ to music every evening.",        options: ["listen", "listens", "listening", "listened"],   answer: 0 }
   ];
+
+  /* =========================== PRONOUNS =========================== */
 
   /* =========================== PRONOUNS =========================== */
   const pronouns = [

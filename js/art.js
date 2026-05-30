@@ -1003,6 +1003,43 @@
       <rect x="440" y="140" width="50" height="130" fill="#5a6a3a"/>
       <text x="400" y="106" font-size="20" fill="#e2484d" text-anchor="middle" font-family="Georgia" font-weight="800">CLOTHES</text>`,
       { wA: "#3a2c1a", wB: "#1c1208", fA: "#42321a", fB: "#241608", ac: "#e2484d" }),
+    mall_gift_wrap: () => roomBase(`
+      <!-- Gift Wrap Shop — wrapped presents stacked on shelves, ribbons hanging -->
+      <rect x="60" y="92" width="680" height="40" fill="#a02050"/>
+      <text x="400" y="120" font-size="22" fill="#fff" text-anchor="middle" font-family="Georgia" font-weight="800">🎁 GIFT WRAP 🎁</text>
+      <!-- Hanging ribbon swag -->
+      <path d="M60 132 Q200 168 340 138 Q480 168 620 138 Q700 152 740 132" stroke="#f0b53a" stroke-width="3" fill="none" opacity=".85"/>
+      <!-- Stacks of wrapped presents -->
+      <!-- Left stack -->
+      <rect x="80"  y="220" width="80"  height="70" fill="#7a3aa0" stroke="#3a1a52" stroke-width="2"/>
+      <rect x="116" y="220" width="8"   height="70" fill="#f0b53a"/>
+      <rect x="80"  y="250" width="80"  height="6"  fill="#f0b53a"/>
+      <path d="M100 220 q20 -12 40 0" stroke="#f0b53a" stroke-width="3" fill="none"/>
+      <rect x="92"  y="160" width="56"  height="58" fill="#3a567a" stroke="#1a2a3a" stroke-width="2"/>
+      <rect x="116" y="160" width="8"   height="58" fill="#e2484d"/>
+      <rect x="92"  y="184" width="56"  height="6"  fill="#e2484d"/>
+      <!-- Middle stack -->
+      <rect x="340" y="230" width="120" height="60" fill="#3a8a3a" stroke="#1a4a1a" stroke-width="2"/>
+      <rect x="394" y="230" width="12"  height="60" fill="#f0b53a"/>
+      <rect x="340" y="256" width="120" height="6"  fill="#f0b53a"/>
+      <path d="M376 230 q24 -16 48 0" stroke="#f0b53a" stroke-width="3" fill="none"/>
+      <rect x="364" y="170" width="72"  height="56" fill="#a02050" stroke="#5a1030" stroke-width="2"/>
+      <rect x="396" y="170" width="8"   height="56" fill="#fff"/>
+      <rect x="364" y="194" width="72"  height="6"  fill="#fff"/>
+      <!-- Right stack -->
+      <rect x="640" y="220" width="80"  height="70" fill="#7a5a32" stroke="#3a2a18" stroke-width="2"/>
+      <rect x="676" y="220" width="8"   height="70" fill="#7adf9a"/>
+      <rect x="640" y="250" width="80"  height="6"  fill="#7adf9a"/>
+      <path d="M660 220 q20 -12 40 0" stroke="#7adf9a" stroke-width="3" fill="none"/>
+      <rect x="652" y="158" width="56"  height="60" fill="#5a3aa0" stroke="#2a1a5a" stroke-width="2"/>
+      <rect x="676" y="158" width="8"   height="60" fill="#f0b53a"/>
+      <rect x="652" y="182" width="56"  height="6"  fill="#f0b53a"/>
+      <!-- Sparkle stars -->
+      <g fill="#f0b53a" opacity=".85">
+        <path d="M240 156 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3 z"/>
+        <path d="M540 168 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3 z"/>
+      </g>`,
+      { wA: "#3a1f4e", wB: "#1c0e26", fA: "#42263a", fB: "#241224", ac: "#a02050" }),
     mall_pet: () => roomBase(`
       <rect x="80" y="150" width="160" height="150" fill="#28160a"/>
       <rect x="100" y="170" width="120" height="110" fill="#1a1a22"/>
