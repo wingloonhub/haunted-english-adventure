@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!--
+    Maskable icon — Android's adaptive icon system masks this to a circle,
+    rounded square, or squircle, so:
+      * Background MUST fill the entire viewport (no rounded corners).
+      * Content (the ghost) MUST stay inside the central 80% "safe zone"
+        — roughly a circle of radius 205 around (256, 256).
+  -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="68%">
+      <stop offset="0%"   stop-color="#5a2c8a"/>
+      <stop offset="55%"  stop-color="#2a1042"/>
+      <stop offset="100%" stop-color="#0a0612"/>
+    </radialGradient>
+    <radialGradient id="eye" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#fff"/>
+      <stop offset="45%"  stop-color="#7adfd0"/>
+      <stop offset="100%" stop-color="#03342f"/>
+    </radialGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Full-bleed background -->
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <!-- Ghost shrunk slightly so it fits the safe zone -->
+  <g transform="translate(256 256) scale(0.78) translate(-256 -256)">
+    <path d="M256 100
+             c-96 0-152 96-152 220
+             0 80-16 116-32 144
+             36-16 64-8 84 16
+             20-24 52-24 72 0
+             20-24 52-24 72 0
+             20-24 56-24 92 16
+             -16-28-32-64-32-176
+             0-128-48-220-144-220Z"
+          fill="#f0ecdf" stroke="#9a9488" stroke-width="3"/>
+    <ellipse cx="208" cy="240" rx="28" ry="36" fill="url(#eye)" filter="url(#glow)"/>
+    <ellipse cx="304" cy="240" rx="28" ry="36" fill="url(#eye)" filter="url(#glow)"/>
+    <circle cx="208" cy="246" r="11" fill="#0a0612"/>
+    <circle cx="304" cy="246" r="11" fill="#0a0612"/>
+    <path d="M196 326 L226 360 L256 326 L286 360 L316 326"
+          fill="none" stroke="#0a0612" stroke-width="14"
+          stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

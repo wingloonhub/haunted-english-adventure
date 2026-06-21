@@ -1,0 +1,29 @@
+{
+  "name": "The Haunted English Adventure",
+  "short_name": "Haunted English",
+  "description": "Year 3–4 English learning adventure — defeat haunted monsters and zombies by answering grammar, vocabulary, sentence-building and comprehension questions.",
+  "start_url": "./",
+  "scope": "./",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0612",
+  "theme_color": "#0a0612",
+  "categories": ["education", "games", "kids"],
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

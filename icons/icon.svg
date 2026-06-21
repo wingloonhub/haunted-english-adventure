@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="62%">
+      <stop offset="0%"   stop-color="#5a2c8a"/>
+      <stop offset="55%"  stop-color="#2a1042"/>
+      <stop offset="100%" stop-color="#0a0612"/>
+    </radialGradient>
+    <radialGradient id="eye" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#fff"/>
+      <stop offset="45%"  stop-color="#7adfd0"/>
+      <stop offset="100%" stop-color="#03342f"/>
+    </radialGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="8" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Rounded background tile (looks like an app icon on iOS) -->
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+
+  <!-- Stars scattered -->
+  <g fill="#cfc6dd" opacity=".55">
+    <circle cx="80"  cy="92"  r="3"/>
+    <circle cx="416" cy="76"  r="2.5"/>
+    <circle cx="64"  cy="232" r="2"/>
+    <circle cx="448" cy="200" r="2.5"/>
+    <circle cx="120" cy="436" r="2"/>
+    <circle cx="408" cy="424" r="3"/>
+  </g>
+
+  <!-- Crescent moon (top-right) -->
+  <g>
+    <circle cx="412" cy="120" r="38" fill="#e8e3da" opacity=".85"/>
+    <circle cx="398" cy="112" r="36" fill="url(#bg)"/>
+  </g>
+
+  <!-- Ghost body — adapted from favicon.svg -->
+  <path d="M256 100
+           c-96 0-152 96-152 220
+           0 80-16 116-32 144
+           36-16 64-8 84 16
+           20-24 52-24 72 0
+           20-24 52-24 72 0
+           20-24 56-24 92 16
+           -16-28-32-64-32-176
+           0-128-48-220-144-220Z"
+        fill="#f0ecdf" stroke="#9a9488" stroke-width="3"/>
+
+  <!-- Glowing eyes -->
+  <ellipse cx="208" cy="240" rx="28" ry="36" fill="url(#eye)" filter="url(#glow)"/>
+  <ellipse cx="304" cy="240" rx="28" ry="36" fill="url(#eye)" filter="url(#glow)"/>
+  <circle cx="208" cy="246" r="11" fill="#0a0612"/>
+  <circle cx="304" cy="246" r="11" fill="#0a0612"/>
+
+  <!-- Wavy mouth -->
+  <path d="M196 326 L226 360 L256 326 L286 360 L316 326"
+        fill="none" stroke="#0a0612" stroke-width="14"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

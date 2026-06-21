@@ -9,4 +9,15 @@
     if (window.SOUND) SOUND.unlock();
     document.removeEventListener("click", once);
   }, { capture: true });
+
+  // PWA — register the service worker so the browser shows "Install" and
+  // the app opens standalone (no browser chrome) when added to the home screen.
+  // Only register over https/localhost; skip the in-page file:// preview case.
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("service-worker.js").catch(function (err) {
+        console.warn("[PWA] service worker registration failed:", err);
+      });
+    });
+  }
 })();
