@@ -176,10 +176,37 @@
     return !!(m && m.escaped);
   }
 
+  /* =============================================================================
+     EXAM PREPARATION — a separate section outside the map. No monsters, no art;
+     each topic is a plain drill list. Questions are wired in later.
+     ============================================================================= */
+  const EXAM_PREP = [
+    {
+      id: "year3_sem2",
+      label: "Year 3 – 2nd Semester",
+      topics: [
+        { id: "y3s2_pronouns",          label: "Pronouns" },
+        { id: "y3s2_present_perfect",   label: "Present Perfect Tense" },
+        { id: "y3s2_conjunctions",      label: "Conjunctions" },
+        { id: "y3s2_prepositions",      label: "Prepositions" },
+        { id: "y3s2_final_punctuation", label: "Final Punctuation" },
+        { id: "y3s2_capital_letters",   label: "Capital Letters" },
+        { id: "y3s2_spelling",          label: "Spelling" },
+        { id: "y3s2_fantastic_mr_fox",  label: "Fantastic Mr. Fox" }
+      ]
+    }
+  ];
+  function examSet(setId)      { return EXAM_PREP.find(s => s.id === setId); }
+  function examTopic(setId, topicId) {
+    const s = examSet(setId);
+    return s && s.topics.find(t => t.id === topicId);
+  }
+
   // Back-compat shims: existing code that reads DATA.MANSION / DATA.ROOMS / DATA.room(id)
   // keeps working — they default to mansion #1.
   window.DATA = {
     MANSIONS, ITEMS, mansion, room, mansionForRoom, isMansionUnlocked,
+    EXAM_PREP, examSet, examTopic,
     MANSION: MANSIONS[0],
     ROOMS:   MANSIONS[0].rooms
   };

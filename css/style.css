@@ -586,6 +586,60 @@ button{font-family:inherit;cursor:pointer;border:none;outline:none}
 /* Solo-arena layout (rooms without an enemy — only the player shows) */
 .solo-fighters{justify-content:center !important}
 
+/* ---------- Exam Preparation (separate from the map) ---------- */
+.exam-set-grid{display:flex;flex-direction:column;gap:12px;margin-top:14px}
+.exam-set-card{
+  background:var(--panel-solid);border:1px solid var(--border);border-radius:14px;
+  padding:18px 20px;cursor:pointer;
+  display:flex;justify-content:space-between;align-items:center;
+  transition:transform .15s, border-color .2s, box-shadow .2s
+}
+.exam-set-card:hover{transform:translateY(-2px);border-color:var(--blood-bright);box-shadow:0 10px 22px rgba(0,0,0,.45)}
+.exam-set-name{font-family:var(--creep);font-weight:800;font-size:20px;color:#fff;letter-spacing:.5px}
+.exam-set-meta{color:var(--muted);font-weight:700;font-size:13px;letter-spacing:.4px;text-transform:uppercase}
+
+.exam-topic-grid{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:14px
+}
+@media (max-width:560px){ .exam-topic-grid{grid-template-columns:1fr} }
+.exam-topic-card{
+  background:var(--panel-solid);border:1px solid var(--border);border-radius:14px;
+  padding:16px 18px;cursor:pointer;
+  display:flex;flex-direction:column;gap:6px;
+  transition:transform .15s, border-color .2s, box-shadow .2s
+}
+.exam-topic-card:hover{transform:translateY(-2px);border-color:var(--gold);box-shadow:0 8px 18px rgba(0,0,0,.45)}
+.exam-topic-name{font-family:var(--creep);font-weight:800;font-size:17px;color:#fff}
+.exam-topic-hint{color:var(--muted);font-size:12.5px;font-weight:700;letter-spacing:.3px}
+
+/* Exam session: progress bar + per-question feedback */
+.exam-progress{
+  height:8px;background:rgba(0,0,0,.4);border:1px solid var(--border);
+  border-radius:99px;overflow:hidden;margin-top:6px
+}
+.exam-progress i{
+  display:block;height:100%;
+  background:linear-gradient(90deg,var(--gold),#fff3c0);
+  transition:width .3s ease
+}
+.exam-progress-label{
+  color:var(--muted);font-size:12.5px;font-weight:700;letter-spacing:.5px;
+  text-transform:uppercase;text-align:center;margin-top:6px
+}
+.exam-progress-label b{color:#fff;font-size:14px}
+.opt.opt-ok{
+  border-color:#46c46a !important;background:rgba(70,196,106,.18);
+  box-shadow:0 0 12px rgba(70,196,106,.45)
+}
+.opt.opt-bad{
+  border-color:#e2484d !important;background:rgba(226,72,77,.18);
+  box-shadow:0 0 12px rgba(226,72,77,.45)
+}
+.exam-score{
+  font-family:var(--creep);font-weight:800;font-size:48px;
+  color:var(--gold);letter-spacing:2px;margin:8px 0
+}
+
 /* Inline reward tag in the battle qtag — shows how many coins this room pays out */
 .qtag-reward{
   background:rgba(240,181,58,.18);color:#f0d68a;

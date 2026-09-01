@@ -107,6 +107,7 @@
         <div class="subtitle">Welcome back, <b>${esc(name)}</b>. Pick a horror adventure and find every key to face the final boss.</div>
         <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px">
           <button class="btn primary full" id="play">🕯️ Choose Your Adventure</button>
+          <button class="btn full" id="exam">📚 Exam Preparation</button>
           <button class="btn full" id="report">📊 Parent Report</button>
           <button class="btn full" id="switch">👥 Switch Player</button>
           <button class="btn ghost full" id="how">❓ How to Play</button>
@@ -115,6 +116,7 @@
         </div>
       </div></div>`;
     $("#play").onclick = renderMansionSelect;
+    $("#exam").onclick = renderExamPrep;
     $("#report").onclick = renderReport;
     $("#switch").onclick = renderProfileSelect;
     $("#how").onclick = renderHow;
@@ -135,6 +137,280 @@
         <p>🔑 Beat the 10 key rooms to unlock <b>The Basement</b> and fight <b>The Mansion King</b> to escape!</p>
       </div>`;
     $("#bk").onclick = renderMenu;
+  }
+
+  /* ===================== EXAM PREPARATION ===================== */
+  // Top-level list of exam sets (currently just Year 3 – 2nd Semester).
+  function renderExamPrep() {
+    const sets = (window.DATA && DATA.EXAM_PREP) || [];
+    const cards = sets.map(s => `
+      <div class="exam-set-card" data-set="${esc(s.id)}">
+        <div class="exam-set-name">${esc(s.label)}</div>
+        <div class="exam-set-meta">${s.topics.length} topics</div>
+      </div>`).join("");
+    screen().innerHTML = `
+      <div class="topbar"><span class="back" id="bk">← Menu</span><h2>📚 Exam Preparation</h2></div>
+      <div class="page" style="max-width:640px;margin:0 auto">
+        <div class="lead">Practice sets sorted by year and semester. Pick one to see the topics inside.</div>
+        <div class="exam-set-grid">${cards || "<p class=\"muted\">No practice sets yet.</p>"}</div>
+      </div>`;
+    $("#bk").onclick = renderMenu;
+    screen().querySelectorAll(".exam-set-card").forEach(card => {
+      card.onclick = () => renderExamPrepSet(card.dataset.set);
+    });
+  }
+
+  // Topic list inside one exam set. Each topic is a plain card; tapping it
+  // opens the practice screen (placeholder until question banks are wired in).
+  function renderExamPrepSet(setId) {
+    const set = DATA.examSet(setId);
+    if (!set) return renderExamPrep();
+    const cards = set.topics.map(t => `
+      <div class="exam-topic-card" data-topic="${esc(t.id)}">
+        <div class="exam-topic-name">${esc(t.label)}</div>
+        <div class="exam-topic-hint">Tap to practice →</div>
+      </div>`).join("");
+    screen().innerHTML = `
+      <div class="topbar"><span class="back" id="bk">← Exam Preparation</span><h2>${esc(set.label)}</h2></div>
+      <div class="page" style="max-width:720px;margin:0 auto">
+        <div class="lead">Choose a topic to practice. Each topic runs as a drill — no monsters, no lives lost.</div>
+        <div class="exam-topic-grid">${cards}</div>
+      </div>`;
+    $("#bk").onclick = renderExamPrep;
+    screen().querySelectorAll(".exam-topic-card").forEach(card => {
+      card.onclick = () => renderExamPrepTopic(setId, card.dataset.topic);
+    });
+  }
+
+  // Topic entry — if a question bank exists for this topic in QUESTIONS_EXAM,
+  // show the "Start Practice" landing; otherwise show a "Coming soon" placeholder.
+  const EXAM_SESSION_SIZE = 20;
+  function bankFromExam(topicId) {
+    return (window.QUESTIONS_EXAM && Array.isArray(window.QUESTIONS_EXAM[topicId])) ? window.QUESTIONS_EXAM[topicId] : null;
+  }
+  function renderExamPrepTopic(setId, topicId) {
+    const set = DATA.examSet(setId);
+    const topic = DATA.examTopic(setId, topicId);
+    if (!set || !topic) return renderExamPrep();
+    const bank = bankFromExam(topicId);
+    if (!bank || !bank.length) {
+      // No questions wired in yet.
+      screen().innerHTML = `
+        <div class="topbar"><span class="back" id="bk">← ${esc(set.label)}</span><h2>${esc(topic.label)}</h2></div>
+        <div class="page" style="max-width:560px;margin:0 auto;text-align:center">
+          <div class="card" style="padding:26px;margin-top:16px">
+            <div class="big-emoji">📝</div>
+            <h2 style="margin:6px 0 10px">Coming soon</h2>
+            <p class="muted" style="line-height:1.6">
+              Practice questions for <b>${esc(topic.label)}</b> will appear here once they're added.
+              <br/><br/>Set: <b>${esc(set.label)}</b>
+            </p>
+            <div class="row" style="margin-top:14px">
+              <button class="btn primary" id="bkBtn">← Back to Topics</button>
+            </div>
+          </div>
+        </div>`;
+      $("#bk").onclick    = () => renderExamPrepSet(setId);
+      $("#bkBtn").onclick = () => renderExamPrepSet(setId);
+      return;
+    }
+    // Landing card — start the 20-question drill.
+    const n = Math.min(EXAM_SESSION_SIZE, bank.length);
+    screen().innerHTML = `
+      <div class="topbar"><span class="back" id="bk">← ${esc(set.label)}</span><h2>${esc(topic.label)}</h2></div>
+      <div class="page" style="max-width:560px;margin:0 auto;text-align:center">
+        <div class="card" style="padding:26px;margin-top:16px">
+          <div class="big-emoji">📝</div>
+          <h2 style="margin:6px 0 10px">${esc(topic.label)}</h2>
+          <p class="muted" style="line-height:1.7">
+            <b>${n} random questions</b> drawn from a bank of ${bank.length}.<br/>
+            No monsters, no lives lost — pick an answer for each, and you'll see your score plus which areas to practice at the end.
+          </p>
+          <div class="row" style="margin-top:14px">
+            <button class="btn ghost" id="bkBtn">← Back</button>
+            <button class="btn primary" id="startBtn">Start Practice →</button>
+          </div>
+        </div>
+      </div>`;
+    $("#bk").onclick    = () => renderExamPrepSet(setId);
+    $("#bkBtn").onclick = () => renderExamPrepSet(setId);
+    $("#startBtn").onclick = () => startExamSession(setId, topicId, bank);
+  }
+
+  // Category labels for the results analysis. Falls back to raw code if unknown.
+  const EXAM_CAT_LABELS = {
+    S: "Subject pronouns (he, she, it, we, they)",
+    O: "Object pronouns (him, her, us, them, me)",
+    C: "Sentence choice — pick the correct whole sentence"
+  };
+
+  // Pick N random questions, balanced across categories if possible.
+  function sampleExamQuestions(bank, n) {
+    const byCat = {};
+    for (const q of bank) { const c = q.cat || "?"; (byCat[c] = byCat[c] || []).push(q); }
+    // Shuffle each category
+    for (const c in byCat) byCat[c] = QUESTIONS.shuffle(byCat[c]);
+    const cats = Object.keys(byCat);
+    const picked = [];
+    // Round-robin pull one from each category until we hit N or run out.
+    let i = 0;
+    while (picked.length < n) {
+      let progressed = false;
+      for (const c of cats) {
+        if (picked.length >= n) break;
+        if (byCat[c].length) { picked.push(byCat[c].shift()); progressed = true; }
+      }
+      if (!progressed) break;
+      i++;
+    }
+    // Final shuffle so category order is mixed.
+    return QUESTIONS.shuffle(picked).slice(0, n).map(shuffleOpts);
+  }
+  // Randomise option order per question and remap the answer index.
+  function shuffleOpts(q) {
+    const order = QUESTIONS.shuffle(q.options.map((_, i) => i));
+    return Object.assign({}, q, {
+      options: order.map(i => q.options[i]),
+      answer:  order.indexOf(q.answer)
+    });
+  }
+
+  let examState = null;
+  function startExamSession(setId, topicId, bank) {
+    examState = {
+      setId, topicId,
+      questions: sampleExamQuestions(bank, EXAM_SESSION_SIZE),
+      idx: 0,
+      answers: [],       // per-question: { correct, chosen, q }
+      byCat: {}          // { cat: { correct, total } }
+    };
+    renderExamQuestion();
+  }
+
+  function renderExamQuestion() {
+    if (!examState) return;
+    const total = examState.questions.length;
+    const q = examState.questions[examState.idx];
+    if (!q) return renderExamResults();
+    const num = examState.idx + 1;
+    screen().innerHTML = `
+      <div class="topbar">
+        <span class="back" id="bk">← Quit</span>
+        <h2>${esc(DATA.examTopic(examState.setId, examState.topicId).label)}</h2>
+      </div>
+      <div class="page" style="max-width:640px;margin:0 auto">
+        <div class="exam-progress"><i style="width:${(num / total) * 100}%"></i></div>
+        <div class="exam-progress-label">Question <b>${num}</b> / ${total}</div>
+        <div class="qwrap" style="margin-top:14px">
+          <div class="qtext">${esc(q.q).replace(/___/g, '<span class="blank">?</span>')}</div>
+          <div class="opts" id="opts">
+            ${q.options.map((o, i) => `<button class="opt" data-i="${i}"><span class="letter">${"ABCD"[i]}</span>${esc(o)}</button>`).join("")}
+          </div>
+        </div>
+      </div>`;
+    $("#bk").onclick = () => {
+      showConfirm("Quit practice?", "You'll lose your progress in this session.", "Quit", () => {
+        examState = null; renderExamPrepSet(examState && examState.setId || null);
+      });
+    };
+    let busyExam = false;
+    screen().querySelectorAll(".opt").forEach(btn => {
+      btn.onclick = () => {
+        if (busyExam) return;
+        busyExam = true;
+        const chosen = parseInt(btn.dataset.i, 10);
+        const correct = chosen === q.answer;
+        screen().querySelectorAll(".opt").forEach(o => o.disabled = true);
+        btn.classList.add(correct ? "opt-ok" : "opt-bad");
+        // Also highlight the actual correct answer if wrong
+        if (!correct) {
+          const goodBtn = screen().querySelector('.opt[data-i="' + q.answer + '"]');
+          if (goodBtn) goodBtn.classList.add("opt-ok");
+        }
+        // Big banner
+        answerFlash(correct);
+        SOUND.play(correct ? "correct" : "wrong");
+        // Record
+        examState.answers.push({ correct, chosen, q });
+        const c = q.cat || "?";
+        if (!examState.byCat[c]) examState.byCat[c] = { correct: 0, total: 0 };
+        examState.byCat[c].total++;
+        if (correct) examState.byCat[c].correct++;
+        setTimeout(() => {
+          examState.idx++;
+          if (examState.idx >= total) renderExamResults();
+          else renderExamQuestion();
+        }, correct ? 900 : 1500);
+      };
+    });
+  }
+
+  function renderExamResults() {
+    if (!examState) return;
+    const total = examState.answers.length;
+    const correct = examState.answers.filter(a => a.correct).length;
+    const pct = total ? Math.round(correct / total * 100) : 0;
+    const band = pct >= 80 ? { emoji: "🏆", head: "Excellent!", tone: "good" }
+              : pct >= 60 ? { emoji: "👍", head: "Good work!", tone: "mid" }
+              : pct >= 40 ? { emoji: "🙂", head: "Keep practicing.", tone: "mid" }
+              :             { emoji: "📖", head: "Let's try again.", tone: "bad" };
+    // Category breakdown — sort weakest first for the analysis.
+    const catRows = Object.keys(examState.byCat).map(c => {
+      const s = examState.byCat[c];
+      const p = s.total ? s.correct / s.total : 0;
+      return { cat: c, label: EXAM_CAT_LABELS[c] || c, correct: s.correct, total: s.total, pct: Math.round(p * 100), acc: p };
+    }).sort((a, b) => a.acc - b.acc);
+    const weakest = catRows.filter(r => r.acc < 0.7);
+    const strongest = catRows.filter(r => r.acc >= 0.8);
+    // Recent mistakes list — up to 5
+    const mistakes = examState.answers.filter(a => !a.correct).slice(0, 5).map(a => {
+      const chosenText = a.q.options[a.chosen];
+      const goodText   = a.q.options[a.q.answer];
+      return `<div class="rep-card">
+        <div class="sub" style="margin-bottom:6px">${esc(a.q.q)}</div>
+        <div class="sub" style="color:#e2484d">Your answer: <b>${esc(chosenText)}</b></div>
+        <div class="sub" style="color:#46c46a">Correct: <b>${esc(goodText)}</b></div>
+      </div>`;
+    }).join("");
+    const advice = weakest.length
+      ? `<p><b>Practice more:</b> ${weakest.map(r => esc(r.label)).join("; ")}.</p>`
+      : `<p><b>Strong across the board.</b> Keep it up!</p>`;
+    const topicLabel = (DATA.examTopic(examState.setId, examState.topicId) || {}).label || "";
+    const setLabel   = (DATA.examSet(examState.setId) || {}).label || "";
+    screen().innerHTML = `
+      <div class="topbar"><span class="back" id="bk">← Back to Topics</span><h2>Practice Results</h2></div>
+      <div class="page" style="max-width:720px;margin:0 auto">
+        <div class="card" style="padding:26px;text-align:center">
+          <div class="big-emoji">${band.emoji}</div>
+          <h2 style="margin:6px 0 4px">${esc(band.head)}</h2>
+          <div class="exam-score">${correct} / ${total}</div>
+          <div class="muted" style="font-weight:700;letter-spacing:.5px">${pct}%  ·  ${esc(topicLabel)} · ${esc(setLabel)}</div>
+        </div>
+
+        <h1 style="font-size:20px;margin:26px 0 10px">Where you did well and where to practice</h1>
+        <div class="rep-grid">
+          ${catRows.map(r => `<div class="rep-card">
+            <div class="t"><span>${esc(r.label)}</span>
+              <span class="${r.acc >= 0.8 ? "tag-strong" : r.acc >= 0.55 ? "tag-mid" : "tag-weak"}">${r.pct}%</span></div>
+            <div class="sub">${r.correct} / ${r.total} correct</div>
+            <div class="bar"><i style="width:${r.pct}%;background:${r.acc >= 0.8 ? "#46c46a" : r.acc >= 0.55 ? "#e8b23a" : "#e2484d"}"></i></div>
+          </div>`).join("")}
+        </div>
+        <div class="summary-box" style="margin-top:14px">${advice}</div>
+
+        ${mistakes ? `<h1 style="font-size:20px;margin:26px 0 10px">A few of your mistakes</h1>
+        <div class="rep-grid">${mistakes}</div>` : ""}
+
+        <div class="row" style="margin-top:22px;justify-content:center">
+          <button class="btn ghost" id="topicsBtn">← Back to Topics</button>
+          <button class="btn primary" id="againBtn">🔁 Try Again</button>
+        </div>
+      </div>`;
+    const savedSetId   = examState.setId;
+    const savedTopicId = examState.topicId;
+    $("#bk").onclick        = () => { examState = null; renderExamPrepSet(savedSetId); };
+    $("#topicsBtn").onclick = () => { examState = null; renderExamPrepSet(savedSetId); };
+    $("#againBtn").onclick  = () => startExamSession(savedSetId, savedTopicId, bankFromExam(savedTopicId));
   }
 
   /* ===================== HUD ===================== */
