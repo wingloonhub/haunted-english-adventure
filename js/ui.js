@@ -243,11 +243,17 @@
     S: "Subject pronouns (he, she, it, we, they)",
     O: "Object pronouns (him, her, us, them, me)",
     H: "Helping verb — has vs have",
+    // NOTE: "P" is overloaded — past-participle for Present Perfect topic,
+    // Period-endings (full stop) for Final Punctuation. The per-topic labels below
+    // clarify which meaning applies in the results screen.
     P: "Past participle — using has/have + right verb form",
     CO: "Coordinating conjunctions (and, but, so, or, yet)",
     SU: "Subordinating conjunctions (because, if, when, before, after, while, until, unless, although, since, as)",
     PL: "Prepositions of PLACE (under, on, beside, above, across, behind, inside, past, along…)",
     TI: "Prepositions of TIME (during, before, after, until, around, at, on…)",
+    Q: "Question mark ( ? ) endings",
+    E: "Exclamation mark ( ! ) endings",
+    CAP: "Capital letters at the start of sentences / proper nouns",
     C: "Sentence choice — pick the correct whole sentence"
   };
   const EXAM_CAT_LABELS_BY_TOPIC = {
@@ -270,6 +276,17 @@
       PL: "Prepositions of PLACE (under, on, beside, above, across, behind, inside, past, along, over, up, down, through, among…)",
       TI: "Prepositions of TIME (during, before, after, until, around, at, on…)",
       C: "Whole-sentence preposition choice (Section D)"
+    },
+    y3s2_final_punctuation: {
+      P:   "Full stop ( . ) — end of a statement",
+      Q:   "Question mark ( ? ) — end of a question",
+      E:   "Exclamation mark ( ! ) — end of an exclamation",
+      CAP: "Capital letters at the start of a sentence",
+      C:   "Whole-sentence choice — correct capital + correct end mark"
+    },
+    y3s2_capital_letters: {
+      PN: "Proper nouns — names, places, days, months, titles, book/film titles, languages",
+      C:  "Whole-sentence choice — pick the correctly capitalised sentence"
     }
   };
   function catLabel(topicId, code) {
