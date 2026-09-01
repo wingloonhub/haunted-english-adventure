@@ -702,6 +702,23 @@ button{font-family:inherit;cursor:pointer;border:none;outline:none}
 .hist-session-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .hist-session-topic{font-weight:700;color:#fff;font-size:14.5px}
 .hist-session-when{margin-top:2px;font-size:12px}
+.hist-stat{display:inline-flex;align-items:center;gap:4px}
+.hist-trend{font-weight:800;font-size:13px}
+.hist-trend.up{color:#46c46a}
+.hist-trend.down{color:#e2484d}
+.hist-trend.flat{color:var(--muted)}
+.hist-label{
+  display:inline-block;background:rgba(255,255,255,.06);
+  color:#cfc6dd;font-weight:800;font-size:11px;letter-spacing:.6px;
+  padding:2px 8px;border-radius:99px;margin-right:8px
+}
+.hist-suggest{
+  margin-top:10px;padding:10px 12px;border-radius:10px;
+  background:rgba(240,181,58,.10);border:1px solid rgba(240,181,58,.35);
+  color:#f0d68a;font-size:13.5px;font-weight:600;line-height:1.55
+}
+.hist-suggest b{color:#fff}
+.hist-suggest .hist-label{background:rgba(240,181,58,.25);color:#f7deb0}
 
 /* Inline reward tag in the battle qtag — shows how many coins this room pays out */
 .qtag-reward{

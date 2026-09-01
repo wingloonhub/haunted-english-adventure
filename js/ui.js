@@ -194,8 +194,14 @@
   function bankFromExam(topicId) {
     return (window.QUESTIONS_EXAM && Array.isArray(window.QUESTIONS_EXAM[topicId])) ? window.QUESTIONS_EXAM[topicId] : null;
   }
-  // Per-topic override — some topics run shorter (e.g. spelling drills = 10 words).
+  // Per-topic override — some topics run shorter (spelling = 10 words),
+  // passage-based topics use `passageCount * qPerPassage`.
   function sessionSizeFor(topic, bank) {
+    if (topic && topic.passageMode) {
+      const pc = topic.passageCount || 3;
+      const qp = topic.qPerPassage || 5;
+      return Math.min(pc * qp, bank.length);
+    }
     const base = (topic && topic.sessionSize) || EXAM_SESSION_SIZE;
     return Math.min(base, bank.length);
   }
@@ -227,16 +233,17 @@
     }
     // Landing card — start the drill.
     const n = sessionSizeFor(topic, bank);
+    // Passage-based topics (Fantastic Mr Fox) describe themselves differently.
+    const pitch = topic.passageMode
+      ? `<b>${topic.passageCount || 3} random passages</b> (about ${n} questions in total) drawn from ${Math.floor(bank.length / (topic.qPerPassage || 5))} stories.<br/>Read each passage carefully, then answer the questions below it.`
+      : `<b>${n} random questions</b> drawn from a bank of ${bank.length}.<br/>No monsters, no lives lost — pick an answer for each, and you'll see your score plus which areas to practice at the end.`;
     screen().innerHTML = `
       <div class="topbar"><span class="back" id="bk">← ${esc(set.label)}</span><h2>${esc(topic.label)}</h2></div>
       <div class="page" style="max-width:560px;margin:0 auto;text-align:center">
         <div class="card" style="padding:26px;margin-top:16px">
           <div class="big-emoji">📝</div>
           <h2 style="margin:6px 0 10px">${esc(topic.label)}</h2>
-          <p class="muted" style="line-height:1.7">
-            <b>${n} random questions</b> drawn from a bank of ${bank.length}.<br/>
-            No monsters, no lives lost — pick an answer for each, and you'll see your score plus which areas to practice at the end.
-          </p>
+          <p class="muted" style="line-height:1.7">${pitch}</p>
           <div class="row" style="margin-top:14px">
             <button class="btn ghost" id="bkBtn">← Back</button>
             <button class="btn primary" id="startBtn">Start Practice →</button>
@@ -304,6 +311,10 @@
       P: "Prefixes — negative (il/im/in/dis) and other (re/inter/super/sub/auto/anti)",
       S: "Suffixes — -ily, -ation, -ure, -sion/-tion, -ous",
       T: "Tricky letters — silent letters, 'sc', 'ch', 'gh', unusual patterns (echo, quiche, beige, scissors, muscles)"
+    },
+    y3s2_fantastic_mr_fox: {
+      F: "Fact recall — who, what, where, when questions straight from the passage",
+      I: "Inference — why, how, and 'what does this show' questions that need thinking"
     }
   };
   function catLabel(topicId, code) {
@@ -311,16 +322,33 @@
     return (t && t[code]) || EXAM_CAT_LABELS_DEFAULT[code] || code;
   }
 
+  // Passage-based sampling — group questions by their pid, pick N whole
+  // passages at random, keep their questions in original order (kids read the
+  // passage once and answer all its questions before moving to the next).
+  function samplePassageQuestions(bank, passageCount) {
+    const byPid = {};
+    for (const q of bank) {
+      if (!q.pid) continue;
+      (byPid[q.pid] = byPid[q.pid] || []).push(q);
+    }
+    const pids = QUESTIONS.shuffle(Object.keys(byPid)).slice(0, passageCount);
+    const picked = [];
+    for (const pid of pids) {
+      for (const q of byPid[pid]) picked.push(q);
+    }
+    return picked.map(shuffleOpts);
+  }
   // Pick N random questions, balanced across categories if possible.
-  function sampleExamQuestions(bank, n) {
+  // For passage-based topics, defer to samplePassageQuestions.
+  function sampleExamQuestions(bank, n, opts) {
+    if (opts && opts.passageMode) {
+      return samplePassageQuestions(bank, opts.passageCount || 3);
+    }
     const byCat = {};
     for (const q of bank) { const c = q.cat || "?"; (byCat[c] = byCat[c] || []).push(q); }
-    // Shuffle each category
     for (const c in byCat) byCat[c] = QUESTIONS.shuffle(byCat[c]);
     const cats = Object.keys(byCat);
     const picked = [];
-    // Round-robin pull one from each category until we hit N or run out.
-    let i = 0;
     while (picked.length < n) {
       let progressed = false;
       for (const c of cats) {
@@ -328,9 +356,7 @@
         if (byCat[c].length) { picked.push(byCat[c].shift()); progressed = true; }
       }
       if (!progressed) break;
-      i++;
     }
-    // Final shuffle so category order is mixed.
     return QUESTIONS.shuffle(picked).slice(0, n).map(shuffleOpts);
   }
   // Randomise option order per question and remap the answer index.
@@ -346,13 +372,15 @@
 
   let examState = null;
   function startExamSession(setId, topicId, bank, size) {
-    const n = size || sessionSizeFor(DATA.examTopic(setId, topicId), bank);
+    const topic = DATA.examTopic(setId, topicId);
+    const n = size || sessionSizeFor(topic, bank);
+    const opts = topic && topic.passageMode ? { passageMode: true, passageCount: topic.passageCount || 3 } : null;
     examState = {
       setId, topicId,
-      questions: sampleExamQuestions(bank, n),
+      questions: sampleExamQuestions(bank, n, opts),
       idx: 0,
-      answers: [],       // per-question: { correct, chosen, q }
-      byCat: {}          // { cat: { correct, total } }
+      answers: [],
+      byCat: {}
     };
     renderExamQuestion();
   }
@@ -677,28 +705,55 @@
         `Great work — no clear weak topic. Keep practicing!`;
     }
 
+    // Per-topic suggestion — actionable advice based on session count, average
+    // score, weakest category and trend.
+    function suggestionFor(t) {
+      const parts = [];
+      // Recommend more practice if trend is down
+      if (t.trend === "down" && t.sessions >= 2) {
+        parts.push("Latest scores are dropping — review the topic before your next practice.");
+      }
+      // Sample-size warning
+      if (t.sessions < 3) {
+        parts.push("Take " + (3 - t.sessions) + " more session" + (3 - t.sessions === 1 ? "" : "s") + " to get a reliable picture.");
+      }
+      // Weakest category
+      if (t.weakestCat && t.weakestCat.total >= 3 && t.weakestCat.acc < 0.7) {
+        parts.push('Focus most on <b>' + esc(t.weakestCat.label) + '</b> — that is where the most mistakes happen (' + t.weakestCat.pct + '%).');
+      } else if (t.avg < 60) {
+        parts.push("Practice this topic more often — try 2–3 more sessions this week.");
+      } else if (t.avg >= 80 && !parts.length) {
+        parts.push("Strong performance across the board. Keep it up, or try a harder topic.");
+      }
+      return parts.length ? parts.join(" ") : "Keep practicing to build a longer record.";
+    }
     // Topic cards
     const topicCards = topicRows.map(t => {
       const band = pctBand(t.avg);
-      const trendMark = t.trend === "up" ? '<span style="color:#46c46a">▲ improving</span>'
-                      : t.trend === "down" ? '<span style="color:#e2484d">▼ slipping</span>'
-                      : '<span class="muted">— steady</span>';
-      const weakLine = t.weakestCat && t.weakestCat.total > 0 && t.weakestCat.acc < 0.75
-        ? `<div class="hist-weak">Weakest area: <b>${esc(t.weakestCat.label)}</b> — ${t.weakestCat.correct}/${t.weakestCat.total} (${t.weakestCat.pct}%)</div>`
-        : t.weakestCat ? `<div class="hist-weak muted">All categories at ≥ 75%.</div>` : "";
+      const trendMark = t.trend === "up" ? '<span class="hist-trend up">▲ improving</span>'
+                      : t.trend === "down" ? '<span class="hist-trend down">▼ declining</span>'
+                      : '<span class="hist-trend flat">— steady</span>';
+      // Weakest area — always show if there are stats
+      const weakLine = t.weakestCat && t.weakestCat.total > 0
+        ? (t.weakestCat.acc < 0.75
+            ? `<div class="hist-weak"><span class="hist-label">🎯 Weakest area</span> <b>${esc(t.weakestCat.label)}</b> — ${t.weakestCat.correct}/${t.weakestCat.total} correct (${t.weakestCat.pct}%)</div>`
+            : `<div class="hist-weak muted"><span class="hist-label">✅ All categories at ≥ 75%</span> Great balance across question types.</div>`)
+        : "";
+      const suggestion = `<div class="hist-suggest"><span class="hist-label">💡 Suggestion</span> ${suggestionFor(t)}</div>`;
       return `<div class="hist-topic-card" data-topic="${esc(t.topicId)}">
         <div class="hist-topic-head">
           <div class="hist-topic-name">${esc(t.label)}</div>
           <span class="${band.cls}">${band.txt} · ${t.avg}%</span>
         </div>
         <div class="hist-topic-stats">
-          <span><b>${t.sessions}</b> session${t.sessions === 1 ? "" : "s"}</span>
-          <span>Latest: <b>${t.latest}%</b></span>
-          <span>Best: <b>${t.best}%</b></span>
-          <span>Worst: <b>${t.worst}%</b></span>
-          <span>${trendMark}</span>
+          <span class="hist-stat"><b>${t.sessions}</b> attempt${t.sessions === 1 ? "" : "s"}</span>
+          <span class="hist-stat">Latest <b>${t.latest}%</b></span>
+          <span class="hist-stat">Best <b>${t.best}%</b></span>
+          <span class="hist-stat">Worst <b>${t.worst}%</b></span>
+          <span class="hist-stat">${trendMark}</span>
         </div>
         ${weakLine}
+        ${suggestion}
       </div>`;
     }).join("");
 

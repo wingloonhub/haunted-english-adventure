@@ -192,7 +192,7 @@
         { id: "y3s2_final_punctuation", label: "Final Punctuation" },
         { id: "y3s2_capital_letters",   label: "Capital Letters" },
         { id: "y3s2_spelling",          label: "Spelling", sessionSize: 10 },
-        { id: "y3s2_fantastic_mr_fox",  label: "Fantastic Mr. Fox" }
+        { id: "y3s2_fantastic_mr_fox",  label: "Fantastic Mr. Fox", passageMode: true, passageCount: 3, qPerPassage: 5 }
       ]
     }
   ];
