@@ -191,7 +191,7 @@
         { id: "y3s2_prepositions",      label: "Prepositions" },
         { id: "y3s2_final_punctuation", label: "Final Punctuation" },
         { id: "y3s2_capital_letters",   label: "Capital Letters" },
-        { id: "y3s2_spelling",          label: "Spelling" },
+        { id: "y3s2_spelling",          label: "Spelling", sessionSize: 10 },
         { id: "y3s2_fantastic_mr_fox",  label: "Fantastic Mr. Fox" }
       ]
     }

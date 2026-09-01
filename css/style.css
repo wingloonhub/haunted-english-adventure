@@ -640,6 +640,38 @@ button{font-family:inherit;cursor:pointer;border:none;outline:none}
   color:var(--gold);letter-spacing:2px;margin:8px 0
 }
 
+/* Spelling drill — speak button, text input, submit */
+.spell-block{display:flex;flex-direction:column;gap:14px;align-items:stretch;margin-top:6px}
+.spell-instr{color:var(--muted);font-size:14px;font-weight:600;text-align:center;margin:0}
+.btn.spell-hear{
+  font-size:20px;padding:16px 18px;letter-spacing:.6px;
+  align-self:center;min-width:260px;
+  box-shadow:0 4px 14px rgba(177,18,43,.4);
+  border-radius:14px
+}
+.spell-input{
+  width:100%;box-sizing:border-box;
+  padding:14px 16px;font-size:22px;font-weight:700;
+  background:rgba(0,0,0,.32);
+  border:2px solid var(--border);border-radius:12px;
+  color:#fff;font-family:inherit;letter-spacing:1.4px;text-align:center;
+  transition:border-color .15s,background .15s
+}
+.spell-input:focus{outline:none;border-color:var(--gold);background:rgba(0,0,0,.45)}
+.spell-input.spell-ok{
+  border-color:#46c46a;background:rgba(70,196,106,.18);color:#a9eebc
+}
+.spell-input.spell-bad{
+  border-color:#e2484d;background:rgba(226,72,77,.18);color:#ffc8ca
+}
+.spell-correction{
+  margin-top:10px;text-align:center;font-size:15px;
+  padding:10px 14px;border-radius:10px;
+  background:rgba(226,72,77,.14);border:1px solid rgba(226,72,77,.45);
+  color:#ffe1e2
+}
+.spell-correction b{color:#fff;font-size:17px;letter-spacing:1px}
+
 /* Inline reward tag in the battle qtag — shows how many coins this room pays out */
 .qtag-reward{
   background:rgba(240,181,58,.18);color:#f0d68a;

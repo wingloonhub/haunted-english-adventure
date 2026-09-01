@@ -188,6 +188,11 @@
   function bankFromExam(topicId) {
     return (window.QUESTIONS_EXAM && Array.isArray(window.QUESTIONS_EXAM[topicId])) ? window.QUESTIONS_EXAM[topicId] : null;
   }
+  // Per-topic override — some topics run shorter (e.g. spelling drills = 10 words).
+  function sessionSizeFor(topic, bank) {
+    const base = (topic && topic.sessionSize) || EXAM_SESSION_SIZE;
+    return Math.min(base, bank.length);
+  }
   function renderExamPrepTopic(setId, topicId) {
     const set = DATA.examSet(setId);
     const topic = DATA.examTopic(setId, topicId);
@@ -214,8 +219,8 @@
       $("#bkBtn").onclick = () => renderExamPrepSet(setId);
       return;
     }
-    // Landing card — start the 20-question drill.
-    const n = Math.min(EXAM_SESSION_SIZE, bank.length);
+    // Landing card — start the drill.
+    const n = sessionSizeFor(topic, bank);
     screen().innerHTML = `
       <div class="topbar"><span class="back" id="bk">← ${esc(set.label)}</span><h2>${esc(topic.label)}</h2></div>
       <div class="page" style="max-width:560px;margin:0 auto;text-align:center">
@@ -234,7 +239,7 @@
       </div>`;
     $("#bk").onclick    = () => renderExamPrepSet(setId);
     $("#bkBtn").onclick = () => renderExamPrepSet(setId);
-    $("#startBtn").onclick = () => startExamSession(setId, topicId, bank);
+    $("#startBtn").onclick = () => startExamSession(setId, topicId, bank, n);
   }
 
   // Category labels for the results analysis — per-topic overrides so
@@ -287,6 +292,12 @@
     y3s2_capital_letters: {
       PN: "Proper nouns — names, places, days, months, titles, book/film titles, languages",
       C:  "Whole-sentence choice — pick the correctly capitalised sentence"
+    },
+    y3s2_spelling: {
+      V: "Tricky vowels — 'y' as a vowel (bicycle, symbol, syrup, crystal, pyramid) and 'ou' sounds (young, cousin, rough, touch, enough)",
+      P: "Prefixes — negative (il/im/in/dis) and other (re/inter/super/sub/auto/anti)",
+      S: "Suffixes — -ily, -ation, -ure, -sion/-tion, -ous",
+      T: "Tricky letters — silent letters, 'sc', 'ch', 'gh', unusual patterns (echo, quiche, beige, scissors, muscles)"
     }
   };
   function catLabel(topicId, code) {
@@ -317,7 +328,9 @@
     return QUESTIONS.shuffle(picked).slice(0, n).map(shuffleOpts);
   }
   // Randomise option order per question and remap the answer index.
+  // Spelling questions have no options → return unchanged.
   function shuffleOpts(q) {
+    if (!q.options) return q;
     const order = QUESTIONS.shuffle(q.options.map((_, i) => i));
     return Object.assign({}, q, {
       options: order.map(i => q.options[i]),
@@ -326,15 +339,31 @@
   }
 
   let examState = null;
-  function startExamSession(setId, topicId, bank) {
+  function startExamSession(setId, topicId, bank, size) {
+    const n = size || sessionSizeFor(DATA.examTopic(setId, topicId), bank);
     examState = {
       setId, topicId,
-      questions: sampleExamQuestions(bank, EXAM_SESSION_SIZE),
+      questions: sampleExamQuestions(bank, n),
       idx: 0,
       answers: [],       // per-question: { correct, chosen, q }
       byCat: {}          // { cat: { correct, total } }
     };
     renderExamQuestion();
+  }
+
+  // Speak a word via Web Speech API — used by the Spelling drill.
+  function speakWord(word) {
+    if (!("speechSynthesis" in window)) return false;
+    try {
+      window.speechSynthesis.cancel();     // stop any prior utterance
+      const u = new SpeechSynthesisUtterance(word);
+      u.lang = "en-US";
+      u.rate = 0.85;                        // a little slower for kids
+      u.pitch = 1;
+      u.volume = 1;
+      window.speechSynthesis.speak(u);
+      return true;
+    } catch (e) { return false; }
   }
 
   function renderExamQuestion() {
@@ -343,27 +372,98 @@
     const q = examState.questions[examState.idx];
     if (!q) return renderExamResults();
     const num = examState.idx + 1;
+    const topicLabel = DATA.examTopic(examState.setId, examState.topicId).label;
+    const isSpelling = !!q.spelling;
+
+    // Question-body markup — either the standard MCQ block or the spelling block.
+    const body = isSpelling
+      ? `<div class="spell-block">
+           <p class="spell-instr">Tap the speaker to hear the word, then type it below.</p>
+           <button class="btn primary spell-hear" id="hearBtn" type="button">🔊 Hear the word</button>
+           <input class="spell-input" id="spellInput" type="text"
+                  autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
+                  placeholder="Type the word here…" />
+           <div class="builder-actions" style="justify-content:flex-end;margin-top:12px">
+             <button class="btn primary sm" id="spellSubmit" disabled>Submit answer</button>
+           </div>
+         </div>`
+      : `<div class="qtext">${esc(q.q).replace(/___/g, '<span class="blank">?</span>')}</div>
+         <div class="opts" id="opts">
+           ${q.options.map((o, i) => `<button class="opt" data-i="${i}"><span class="letter">${"ABCD"[i]}</span>${esc(o)}</button>`).join("")}
+         </div>`;
+
     screen().innerHTML = `
       <div class="topbar">
         <span class="back" id="bk">← Quit</span>
-        <h2>${esc(DATA.examTopic(examState.setId, examState.topicId).label)}</h2>
+        <h2>${esc(topicLabel)}</h2>
       </div>
       <div class="page" style="max-width:640px;margin:0 auto">
         <div class="exam-progress"><i style="width:${(num / total) * 100}%"></i></div>
         <div class="exam-progress-label">Question <b>${num}</b> / ${total}</div>
-        <div class="qwrap" style="margin-top:14px">
-          <div class="qtext">${esc(q.q).replace(/___/g, '<span class="blank">?</span>')}</div>
-          <div class="opts" id="opts">
-            ${q.options.map((o, i) => `<button class="opt" data-i="${i}"><span class="letter">${"ABCD"[i]}</span>${esc(o)}</button>`).join("")}
-          </div>
-        </div>
+        <div class="qwrap" style="margin-top:14px">${body}</div>
       </div>`;
     $("#bk").onclick = () => {
+      const savedSetId = examState.setId;
       showConfirm("Quit practice?", "You'll lose your progress in this session.", "Quit", () => {
-        examState = null; renderExamPrepSet(examState && examState.setId || null);
+        examState = null; renderExamPrepSet(savedSetId);
       });
     };
+
     let busyExam = false;
+    function finishAnswer(correct, chosenText) {
+      examState.answers.push({ correct, chosen: chosenText, q });
+      const c = q.cat || "?";
+      if (!examState.byCat[c]) examState.byCat[c] = { correct: 0, total: 0 };
+      examState.byCat[c].total++;
+      if (correct) examState.byCat[c].correct++;
+      setTimeout(() => {
+        examState.idx++;
+        if (examState.idx >= total) renderExamResults();
+        else renderExamQuestion();
+      }, correct ? 900 : 1900);
+    }
+
+    if (isSpelling) {
+      // Auto-speak the word on load (user has already gestured via Start Practice).
+      const spoken = speakWord(q.word);
+      if (!spoken) {
+        // No TTS available — show the word instead so the kid can still practice.
+        const instr = screen().querySelector(".spell-instr");
+        if (instr) instr.innerHTML = "Type this word: <b>" + esc(q.word) + "</b>";
+      }
+      $("#hearBtn").onclick = () => speakWord(q.word);
+      const input  = $("#spellInput");
+      const submit = $("#spellSubmit");
+      input.focus();
+      input.oninput = () => { submit.disabled = busyExam || input.value.trim().length === 0; };
+      function grade() {
+        if (busyExam) return;
+        const typed = (input.value || "").trim().toLowerCase();
+        if (!typed) return;
+        busyExam = true;
+        // Accept the primary word OR any alt spellings (US/UK variants).
+        const accept = [q.word.toLowerCase()].concat((q.alt || []).map(a => a.toLowerCase()));
+        const correct = accept.indexOf(typed) > -1;
+        input.disabled = true;
+        submit.disabled = true;
+        input.classList.add(correct ? "spell-ok" : "spell-bad");
+        // Show correction beneath the input if wrong.
+        if (!correct) {
+          const hint = document.createElement("div");
+          hint.className = "spell-correction";
+          hint.innerHTML = `<span class="muted">Correct spelling:</span> <b>${esc(q.word)}</b>`;
+          submit.parentElement.parentElement.appendChild(hint);
+        }
+        answerFlash(correct);
+        SOUND.play(correct ? "correct" : "wrong");
+        finishAnswer(correct, input.value);
+      }
+      submit.onclick = grade;
+      input.onkeydown = (e) => { if (e.key === "Enter") grade(); };
+      return;
+    }
+
+    // MCQ / regular question
     screen().querySelectorAll(".opt").forEach(btn => {
       btn.onclick = () => {
         if (busyExam) return;
@@ -372,25 +472,14 @@
         const correct = chosen === q.answer;
         screen().querySelectorAll(".opt").forEach(o => o.disabled = true);
         btn.classList.add(correct ? "opt-ok" : "opt-bad");
-        // Also highlight the actual correct answer if wrong
         if (!correct) {
           const goodBtn = screen().querySelector('.opt[data-i="' + q.answer + '"]');
           if (goodBtn) goodBtn.classList.add("opt-ok");
         }
-        // Big banner
         answerFlash(correct);
         SOUND.play(correct ? "correct" : "wrong");
-        // Record
-        examState.answers.push({ correct, chosen, q });
-        const c = q.cat || "?";
-        if (!examState.byCat[c]) examState.byCat[c] = { correct: 0, total: 0 };
-        examState.byCat[c].total++;
-        if (correct) examState.byCat[c].correct++;
-        setTimeout(() => {
-          examState.idx++;
-          if (examState.idx >= total) renderExamResults();
-          else renderExamQuestion();
-        }, correct ? 900 : 1500);
+        finishAnswer(correct, chosen);
+        return;   // (finishAnswer schedules the next question)
       };
     });
   }
@@ -460,7 +549,7 @@
     const savedTopicId = examState.topicId;
     $("#bk").onclick        = () => { examState = null; renderExamPrepSet(savedSetId); };
     $("#topicsBtn").onclick = () => { examState = null; renderExamPrepSet(savedSetId); };
-    $("#againBtn").onclick  = () => startExamSession(savedSetId, savedTopicId, bankFromExam(savedTopicId));
+    $("#againBtn").onclick  = () => startExamSession(savedSetId, savedTopicId, bankFromExam(savedTopicId));   // uses topic sessionSize default
   }
 
   /* ===================== HUD ===================== */
