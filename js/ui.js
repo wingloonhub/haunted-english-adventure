@@ -237,12 +237,45 @@
     $("#startBtn").onclick = () => startExamSession(setId, topicId, bank);
   }
 
-  // Category labels for the results analysis. Falls back to raw code if unknown.
-  const EXAM_CAT_LABELS = {
+  // Category labels for the results analysis — per-topic overrides so
+  // the same code ("C") can mean different things across topics.
+  const EXAM_CAT_LABELS_DEFAULT = {
     S: "Subject pronouns (he, she, it, we, they)",
     O: "Object pronouns (him, her, us, them, me)",
+    H: "Helping verb — has vs have",
+    P: "Past participle — using has/have + right verb form",
+    CO: "Coordinating conjunctions (and, but, so, or, yet)",
+    SU: "Subordinating conjunctions (because, if, when, before, after, while, until, unless, although, since, as)",
+    PL: "Prepositions of PLACE (under, on, beside, above, across, behind, inside, past, along…)",
+    TI: "Prepositions of TIME (during, before, after, until, around, at, on…)",
     C: "Sentence choice — pick the correct whole sentence"
   };
+  const EXAM_CAT_LABELS_BY_TOPIC = {
+    y3s2_pronouns: {
+      S: "Subject pronouns (he, she, it, we, they)",
+      O: "Object pronouns (him, her, us, them, me)",
+      C: "Whole-sentence pronoun choice"
+    },
+    y3s2_present_perfect: {
+      H: "Helping verb — has vs have (Section A)",
+      P: "Past participle form — has/have + past participle (Section B)",
+      C: "Whole-sentence present-perfect choice (Section D)"
+    },
+    y3s2_conjunctions: {
+      CO: "Coordinating conjunctions (and, but, so, or, yet)",
+      SU: "Subordinating conjunctions (because, if, when, before, after, while, until, unless, although, since, as)",
+      C: "Whole-sentence conjunction choice (Section D)"
+    },
+    y3s2_prepositions: {
+      PL: "Prepositions of PLACE (under, on, beside, above, across, behind, inside, past, along, over, up, down, through, among…)",
+      TI: "Prepositions of TIME (during, before, after, until, around, at, on…)",
+      C: "Whole-sentence preposition choice (Section D)"
+    }
+  };
+  function catLabel(topicId, code) {
+    const t = EXAM_CAT_LABELS_BY_TOPIC[topicId];
+    return (t && t[code]) || EXAM_CAT_LABELS_DEFAULT[code] || code;
+  }
 
   // Pick N random questions, balanced across categories if possible.
   function sampleExamQuestions(bank, n) {
@@ -358,7 +391,7 @@
     const catRows = Object.keys(examState.byCat).map(c => {
       const s = examState.byCat[c];
       const p = s.total ? s.correct / s.total : 0;
-      return { cat: c, label: EXAM_CAT_LABELS[c] || c, correct: s.correct, total: s.total, pct: Math.round(p * 100), acc: p };
+      return { cat: c, label: catLabel(examState.topicId, c), correct: s.correct, total: s.total, pct: Math.round(p * 100), acc: p };
     }).sort((a, b) => a.acc - b.acc);
     const weakest = catRows.filter(r => r.acc < 0.7);
     const strongest = catRows.filter(r => r.acc >= 0.8);
