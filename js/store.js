@@ -153,6 +153,29 @@
     // Softer death penalty: lose up to N keys (from the player's WEAKEST topics
     // for this map, so the lost rooms are the ones they need to re-practice) +
     // a coin chunk; items + burgerBonus stay.
+    // Record one completed Exam Preparation session onto the active profile so
+    // parents can see progress over time and Wing can see which topics need work.
+    // History is capped at 50 sessions (oldest dropped first).
+    recordExamSession(entry) {
+      const p = STORE.active(); if (!p || !entry) return;
+      if (!p.exam) p.exam = { history: [] };
+      if (!p.exam.history) p.exam.history = [];
+      // Ensure a timestamp — cap mistakes to 10 to keep the stored blob small.
+      const clean = {
+        setId:   entry.setId,
+        topicId: entry.topicId,
+        ts:      entry.ts || Date.now(),
+        total:   entry.total,
+        correct: entry.correct,
+        pct:     entry.total ? Math.round(entry.correct / entry.total * 100) : 0,
+        byCat:   entry.byCat || {},
+        mistakes: (entry.mistakes || []).slice(0, 10)
+      };
+      p.exam.history.unshift(clean);
+      p.exam.history = p.exam.history.slice(0, 50);
+      STORE.save();
+    },
+
     applyDefeatPenalty(mid, opts) {
       const p = STORE.active();
       const m = STORE.mansion(mid);

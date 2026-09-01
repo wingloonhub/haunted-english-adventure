@@ -672,6 +672,37 @@ button{font-family:inherit;cursor:pointer;border:none;outline:none}
 }
 .spell-correction b{color:#fff;font-size:17px;letter-spacing:1px}
 
+/* ---------- Exam history & analysis ---------- */
+.hist-topic-grid{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+.hist-topic-card{
+  background:var(--panel-solid);border:1px solid var(--border);border-radius:14px;
+  padding:16px 18px;cursor:pointer;
+  transition:transform .12s,border-color .15s,box-shadow .15s
+}
+.hist-topic-card:hover{transform:translateY(-2px);border-color:var(--gold);box-shadow:0 8px 18px rgba(0,0,0,.4)}
+.hist-topic-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px}
+.hist-topic-name{font-family:var(--creep);font-weight:800;font-size:18px;color:#fff;letter-spacing:.4px}
+.hist-topic-stats{
+  display:flex;flex-wrap:wrap;gap:12px 16px;color:var(--muted);
+  font-size:13px;font-weight:600;letter-spacing:.2px
+}
+.hist-topic-stats b{color:#fff;font-weight:800}
+.hist-weak{
+  margin-top:8px;padding:8px 12px;border-radius:8px;
+  background:rgba(226,72,77,.12);border:1px solid rgba(226,72,77,.35);
+  color:#ffe0e2;font-size:13px;font-weight:600
+}
+.hist-weak.muted{background:rgba(70,196,106,.08);border-color:rgba(70,196,106,.3);color:#c7ecd0}
+.hist-weak b{color:#fff}
+.hist-session-list{display:flex;flex-direction:column;gap:8px}
+.hist-session{
+  background:rgba(0,0,0,.28);border:1px solid var(--border);border-radius:10px;
+  padding:10px 14px
+}
+.hist-session-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.hist-session-topic{font-weight:700;color:#fff;font-size:14.5px}
+.hist-session-when{margin-top:2px;font-size:12px}
+
 /* Inline reward tag in the battle qtag — shows how many coins this room pays out */
 .qtag-reward{
   background:rgba(240,181,58,.18);color:#f0d68a;

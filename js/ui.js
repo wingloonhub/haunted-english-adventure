@@ -148,13 +148,19 @@
         <div class="exam-set-name">${esc(s.label)}</div>
         <div class="exam-set-meta">${s.topics.length} topics</div>
       </div>`).join("");
+    const p = STORE.active();
+    const historyCount = ((p && p.exam && p.exam.history) || []).length;
     screen().innerHTML = `
       <div class="topbar"><span class="back" id="bk">← Menu</span><h2>📚 Exam Preparation</h2></div>
       <div class="page" style="max-width:640px;margin:0 auto">
         <div class="lead">Practice sets sorted by year and semester. Pick one to see the topics inside.</div>
         <div class="exam-set-grid">${cards || "<p class=\"muted\">No practice sets yet.</p>"}</div>
+        <div style="margin-top:22px;text-align:center">
+          <button class="btn full" id="histBtn">📈 History &amp; Analysis${historyCount ? ` <span class="muted" style="font-weight:600;font-size:13px">· ${historyCount} session${historyCount === 1 ? "" : "s"}</span>` : ""}</button>
+        </div>
       </div>`;
     $("#bk").onclick = renderMenu;
+    $("#histBtn").onclick = renderExamHistory;
     screen().querySelectorAll(".exam-set-card").forEach(card => {
       card.onclick = () => renderExamPrepSet(card.dataset.set);
     });
@@ -489,6 +495,31 @@
     const total = examState.answers.length;
     const correct = examState.answers.filter(a => a.correct).length;
     const pct = total ? Math.round(correct / total * 100) : 0;
+    // Persist this session's summary to the profile's exam history.
+    // Chosen/answer texts are captured so history stays readable even after
+    // question option orders shuffle in a future session.
+    try {
+      const mistakes = examState.answers
+        .filter(a => !a.correct)
+        .map(a => {
+          const opts = a.q.options;
+          return {
+            q: a.q.q,
+            chosen: opts ? (opts[a.chosen] || String(a.chosen)) : String(a.chosen),
+            answer: opts ? (opts[a.q.answer] || "") : (a.q.word || ""),
+            passage: a.q.passage || null
+          };
+        });
+      STORE.recordExamSession({
+        setId: examState.setId,
+        topicId: examState.topicId,
+        ts: Date.now(),
+        total: total,
+        correct: correct,
+        byCat: examState.byCat,
+        mistakes: mistakes
+      });
+    } catch (e) { /* ignore save errors — results still render */ }
     const band = pct >= 80 ? { emoji: "🏆", head: "Excellent!", tone: "good" }
               : pct >= 60 ? { emoji: "👍", head: "Good work!", tone: "mid" }
               : pct >= 40 ? { emoji: "🙂", head: "Keep practicing.", tone: "mid" }
@@ -550,6 +581,170 @@
     $("#bk").onclick        = () => { examState = null; renderExamPrepSet(savedSetId); };
     $("#topicsBtn").onclick = () => { examState = null; renderExamPrepSet(savedSetId); };
     $("#againBtn").onclick  = () => startExamSession(savedSetId, savedTopicId, bankFromExam(savedTopicId));   // uses topic sessionSize default
+  }
+
+  /* ===================== EXAM HISTORY & ANALYSIS ===================== */
+  // Short "5m ago / 2h ago / 3d ago" for the history list.
+  function agoLabel(ts) {
+    const s = Math.max(1, (Date.now() - ts) / 1000);
+    if (s < 60)      return "just now";
+    if (s < 3600)    return Math.floor(s / 60) + "m ago";
+    if (s < 86400)   return Math.floor(s / 3600) + "h ago";
+    if (s < 604800)  return Math.floor(s / 86400) + "d ago";
+    return Math.floor(s / 604800) + "w ago";
+  }
+  function pctBand(p) {
+    if (p >= 80) return { cls: "tag-strong", color: "#46c46a", txt: "Strong" };
+    if (p >= 60) return { cls: "tag-mid",    color: "#e8b23a", txt: "Improving" };
+    return           { cls: "tag-weak",   color: "#e2484d", txt: "Needs work" };
+  }
+
+  function renderExamHistory() {
+    const p = STORE.active();
+    const history = (p && p.exam && p.exam.history) || [];
+    // No sessions yet — friendly empty state.
+    if (!history.length) {
+      screen().innerHTML = `
+        <div class="topbar"><span class="back" id="bk">← Exam Preparation</span><h2>📈 History &amp; Analysis</h2></div>
+        <div class="page" style="max-width:560px;margin:0 auto;text-align:center">
+          <div class="card" style="padding:26px;margin-top:16px">
+            <div class="big-emoji">📊</div>
+            <h2 style="margin:6px 0 10px">No sessions yet</h2>
+            <p class="muted" style="line-height:1.6">
+              Complete a practice session in any topic and it will appear here.
+              You'll see your best/worst/average scores and which areas need more work.
+            </p>
+            <div class="row" style="margin-top:14px">
+              <button class="btn primary" id="backBtn">← Back to Exam Preparation</button>
+            </div>
+          </div>
+        </div>`;
+      $("#bk").onclick = renderExamPrep;
+      $("#backBtn").onclick = renderExamPrep;
+      return;
+    }
+
+    // Aggregate per topic.
+    const byTopic = {};
+    for (const h of history) {
+      if (!byTopic[h.topicId]) byTopic[h.topicId] = { sessions: [], byCat: {} };
+      byTopic[h.topicId].sessions.push(h);
+      // Fold this session's byCat into the topic-wide totals.
+      const byC = byTopic[h.topicId].byCat;
+      Object.keys(h.byCat || {}).forEach(c => {
+        if (!byC[c]) byC[c] = { correct: 0, total: 0 };
+        byC[c].correct += h.byCat[c].correct;
+        byC[c].total   += h.byCat[c].total;
+      });
+    }
+
+    // Build per-topic summary rows sorted weakest-first.
+    const topicRows = Object.keys(byTopic).map(tid => {
+      const sess = byTopic[tid].sessions;
+      const topic = DATA.examTopic("year3_sem2", tid) || { label: tid };
+      const scores = sess.map(s => s.pct);
+      const best = Math.max.apply(null, scores);
+      const worst = Math.min.apply(null, scores);
+      const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+      // Latest (first in history — history is prepended).
+      const latest = sess[0].pct;
+      // Trend: compare latest with average of prior sessions.
+      const prior = sess.slice(1);
+      const priorAvg = prior.length ? Math.round(prior.reduce((a, b) => a + b.pct, 0) / prior.length) : latest;
+      const trend = latest > priorAvg ? "up" : latest < priorAvg ? "down" : "flat";
+      // Weakest category across combined sessions for this topic.
+      const catRows = Object.keys(byTopic[tid].byCat).map(c => {
+        const s = byTopic[tid].byCat[c];
+        const acc = s.total ? s.correct / s.total : 0;
+        return { cat: c, label: catLabel(tid, c), pct: Math.round(acc * 100), correct: s.correct, total: s.total, acc };
+      }).sort((a, b) => a.acc - b.acc);
+      const weakestCat = catRows[0];
+      return { topicId: tid, label: topic.label, sessions: sess.length, latest, best, worst, avg, trend, weakestCat, catRows };
+    }).sort((a, b) => a.avg - b.avg);
+
+    // Overall summary
+    const totalSessions = history.length;
+    const overallAvg    = Math.round(history.reduce((a, b) => a + b.pct, 0) / totalSessions);
+    const weakTopics    = topicRows.filter(t => t.avg < 70).slice(0, 3);
+    const strongTopics  = topicRows.filter(t => t.avg >= 80).slice(0, 3);
+
+    let summaryLine;
+    if (weakTopics.length) {
+      summaryLine = `Overall accuracy: <b>${overallAvg}%</b> over <b>${totalSessions}</b> session${totalSessions === 1 ? "" : "s"}. ` +
+        `Focus on: <b style="color:#e2484d">${weakTopics.map(t => esc(t.label)).join(", ")}</b>.`;
+    } else {
+      summaryLine = `Overall accuracy: <b>${overallAvg}%</b> over <b>${totalSessions}</b> session${totalSessions === 1 ? "" : "s"}. ` +
+        `Great work — no clear weak topic. Keep practicing!`;
+    }
+
+    // Topic cards
+    const topicCards = topicRows.map(t => {
+      const band = pctBand(t.avg);
+      const trendMark = t.trend === "up" ? '<span style="color:#46c46a">▲ improving</span>'
+                      : t.trend === "down" ? '<span style="color:#e2484d">▼ slipping</span>'
+                      : '<span class="muted">— steady</span>';
+      const weakLine = t.weakestCat && t.weakestCat.total > 0 && t.weakestCat.acc < 0.75
+        ? `<div class="hist-weak">Weakest area: <b>${esc(t.weakestCat.label)}</b> — ${t.weakestCat.correct}/${t.weakestCat.total} (${t.weakestCat.pct}%)</div>`
+        : t.weakestCat ? `<div class="hist-weak muted">All categories at ≥ 75%.</div>` : "";
+      return `<div class="hist-topic-card" data-topic="${esc(t.topicId)}">
+        <div class="hist-topic-head">
+          <div class="hist-topic-name">${esc(t.label)}</div>
+          <span class="${band.cls}">${band.txt} · ${t.avg}%</span>
+        </div>
+        <div class="hist-topic-stats">
+          <span><b>${t.sessions}</b> session${t.sessions === 1 ? "" : "s"}</span>
+          <span>Latest: <b>${t.latest}%</b></span>
+          <span>Best: <b>${t.best}%</b></span>
+          <span>Worst: <b>${t.worst}%</b></span>
+          <span>${trendMark}</span>
+        </div>
+        ${weakLine}
+      </div>`;
+    }).join("");
+
+    // Recent sessions list (top 10)
+    const recent = history.slice(0, 10).map(h => {
+      const topic = DATA.examTopic("year3_sem2", h.topicId) || { label: h.topicId };
+      const band = pctBand(h.pct);
+      return `<div class="hist-session">
+        <div class="hist-session-row">
+          <span class="hist-session-topic">${esc(topic.label)}</span>
+          <span class="${band.cls}">${h.correct}/${h.total} · ${h.pct}%</span>
+        </div>
+        <div class="hist-session-when muted">${agoLabel(h.ts)}</div>
+      </div>`;
+    }).join("");
+
+    screen().innerHTML = `
+      <div class="topbar"><span class="back" id="bk">← Exam Preparation</span><h2>📈 History &amp; Analysis</h2></div>
+      <div class="page" style="max-width:760px;margin:0 auto">
+        <div class="summary-box">${summaryLine}</div>
+
+        <h1 style="font-size:20px;margin:22px 0 10px">By topic — weakest first</h1>
+        <div class="hist-topic-grid">${topicCards}</div>
+
+        <h1 style="font-size:20px;margin:22px 0 10px">Recent sessions</h1>
+        <div class="hist-session-list">${recent}</div>
+
+        <div class="row" style="margin-top:18px;justify-content:center">
+          <button class="btn ghost sm" id="clearBtn">🗑️ Clear history</button>
+          <button class="btn primary" id="backBtn">← Back to Exam Preparation</button>
+        </div>
+      </div>`;
+    $("#bk").onclick      = renderExamPrep;
+    $("#backBtn").onclick = renderExamPrep;
+    $("#clearBtn").onclick = () => {
+      showConfirm("Clear all history?", "This wipes every recorded exam session for this player. This cannot be undone.",
+        "Clear", () => {
+          const p2 = STORE.active();
+          if (p2 && p2.exam) { p2.exam.history = []; STORE.save(); }
+          renderExamHistory();
+        });
+    };
+    // Tap a topic card to drill in and start a fresh session immediately.
+    screen().querySelectorAll(".hist-topic-card").forEach(card => {
+      card.onclick = () => renderExamPrepTopic("year3_sem2", card.dataset.topic);
+    });
   }
 
   /* ===================== HUD ===================== */
