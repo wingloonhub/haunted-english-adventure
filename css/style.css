@@ -805,6 +805,14 @@ button{font-family:inherit;cursor:pointer;border:none;outline:none}
 }
 .challenge-hist-name{color:#fff;font-weight:600;flex:1}
 
+/* Per-topic detail — session-score sparkline */
+.hist-sparkline{
+  width:100%;max-width:340px;height:60px;
+  background:rgba(0,0,0,.28);border:1px solid var(--border);
+  border-radius:8px;padding:2px
+}
+.hist-spark-cap{margin-top:4px;font-size:11px;letter-spacing:.6px;text-transform:uppercase}
+
 /* Inline reward tag in the battle qtag — shows how many coins this room pays out */
 .qtag-reward{
   background:rgba(240,181,58,.18);color:#f0d68a;

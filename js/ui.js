@@ -908,6 +908,7 @@
       summaryLine = `Overall accuracy: <b>${overallAvg}%</b> over <b>${totalSessions}</b> session${totalSessions === 1 ? "" : "s"}. ` +
         `Great work — no clear weak topic. Keep practicing!`;
     }
+    summaryLine += `<br/><span class="muted" style="font-size:12.5px;font-weight:600">👆 Tap any topic card for detailed analysis.</span>`;
 
     // Per-topic suggestion — actionable advice based on session count, average
     // score, weakest category and trend.
@@ -1028,10 +1029,182 @@
           renderExamHistory();
         });
     };
-    // Tap a topic card to drill in and start a fresh session immediately.
+    // Tap a topic card to open its detailed analysis screen.
     screen().querySelectorAll(".hist-topic-card").forEach(card => {
-      card.onclick = () => renderExamPrepTopic("year3_sem2", card.dataset.topic);
+      card.onclick = () => renderExamTopicDetail(card.dataset.topic);
     });
+  }
+
+  // ===== Per-topic detail — deep-dive into one topic's exam history =====
+  function renderExamTopicDetail(topicId) {
+    const p = STORE.active();
+    const allHistory = (p && p.exam && p.exam.history) || [];
+    const sessions = allHistory.filter(h => h.topicId === topicId);
+    const topic = DATA.examTopic("year3_sem2", topicId) || { label: topicId };
+    if (!sessions.length) return renderExamHistory();
+
+    // Overall stats
+    const scores = sessions.map(s => s.pct);
+    const best   = Math.max.apply(null, scores);
+    const worst  = Math.min.apply(null, scores);
+    const avg    = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+    const latest = sessions[0].pct;
+    const prior  = sessions.slice(1);
+    const priorAvg = prior.length ? Math.round(prior.reduce((a, b) => a + b.pct, 0) / prior.length) : latest;
+    const trend  = latest > priorAvg ? "up" : latest < priorAvg ? "down" : "flat";
+    const trendMark = trend === "up" ? '<span class="hist-trend up">▲ improving vs your average</span>'
+                   : trend === "down" ? '<span class="hist-trend down">▼ recent scores are dropping</span>'
+                   : '<span class="hist-trend flat">— steady</span>';
+    const band = pctBand(avg);
+
+    // Category performance across ALL sessions for this topic — weakest first
+    const byCat = {};
+    sessions.forEach(s => {
+      Object.keys(s.byCat || {}).forEach(c => {
+        if (!byCat[c]) byCat[c] = { correct: 0, total: 0 };
+        byCat[c].correct += s.byCat[c].correct;
+        byCat[c].total   += s.byCat[c].total;
+      });
+    });
+    const catRows = Object.keys(byCat).map(c => {
+      const s = byCat[c];
+      const acc = s.total ? s.correct / s.total : 0;
+      return { cat: c, label: catLabel(topicId, c), pct: Math.round(acc * 100), correct: s.correct, total: s.total, acc };
+    }).sort((a, b) => a.acc - b.acc);
+    const catCards = catRows.map(r => `<div class="rep-card">
+      <div class="t"><span>${esc(r.label)}</span>
+        <span class="${r.acc >= 0.8 ? "tag-strong" : r.acc >= 0.55 ? "tag-mid" : "tag-weak"}">${r.pct}%</span></div>
+      <div class="sub">${r.correct} / ${r.total} correct across ${sessions.length} attempt${sessions.length === 1 ? "" : "s"}</div>
+      <div class="bar"><i style="width:${r.pct}%;background:${r.acc >= 0.8 ? "#46c46a" : r.acc >= 0.55 ? "#e8b23a" : "#e2484d"}"></i></div>
+    </div>`).join("");
+
+    // Session-by-session sparkline (oldest → newest, left → right).
+    const sparkVals = sessions.slice().reverse().map(s => s.pct);
+    const sparkW = 300, sparkH = 60, pad = 6;
+    let sparkSvg = "";
+    if (sparkVals.length >= 2) {
+      const stepX = (sparkW - 2 * pad) / (sparkVals.length - 1);
+      const pts = sparkVals.map((v, i) => {
+        const x = pad + i * stepX;
+        const y = sparkH - pad - (v / 100) * (sparkH - 2 * pad);
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      });
+      sparkSvg = `
+        <svg class="hist-sparkline" viewBox="0 0 ${sparkW} ${sparkH}" preserveAspectRatio="none">
+          <path d="M 0 ${sparkH - pad - (avg/100)*(sparkH-2*pad)} L ${sparkW} ${sparkH - pad - (avg/100)*(sparkH-2*pad)}"
+                stroke="rgba(240,181,58,.35)" stroke-width="1" stroke-dasharray="4 4" fill="none"/>
+          <polyline points="${pts.join(" ")}" stroke="#f0b53a" stroke-width="2" fill="none" stroke-linejoin="round"/>
+          ${pts.map(p => { const [x,y] = p.split(","); return `<circle cx="${x}" cy="${y}" r="3" fill="#fff"/>`; }).join("")}
+        </svg>
+        <div class="hist-spark-cap muted">← older sessions · newer sessions →</div>`;
+    }
+
+    // Full session list — most recent first
+    const sessionList = sessions.map((s, i) => {
+      const b = pctBand(s.pct);
+      const label = i === 0 ? "Latest" : ("#" + (sessions.length - i));
+      return `<div class="hist-session">
+        <div class="hist-session-row">
+          <span class="hist-session-topic">${label} · <span class="muted">${esc(agoLabel(s.ts))}</span></span>
+          <span class="${b.cls}">${s.correct}/${s.total} · ${s.pct}%</span>
+        </div>
+      </div>`;
+    }).join("");
+
+    // Mistakes — pull recent wrong answers from the last 3 sessions
+    const mistakes = [];
+    for (const s of sessions.slice(0, 3)) {
+      if (!s.mistakes) continue;
+      for (const m of s.mistakes) { mistakes.push({ ...m, when: agoLabel(s.ts) }); if (mistakes.length >= 8) break; }
+      if (mistakes.length >= 8) break;
+    }
+    const mistakeCards = mistakes.map(m => `<div class="rep-card">
+      ${m.passage ? `<div class="sub muted" style="font-style:italic;margin-bottom:6px">${esc(m.passage.length > 140 ? m.passage.slice(0, 140) + "…" : m.passage)}</div>` : ""}
+      <div class="sub" style="margin-bottom:6px">${esc(m.q || "Question")} <span class="muted" style="font-size:11px">· ${esc(m.when)}</span></div>
+      <div class="sub" style="color:#e2484d">Your answer: <b>${esc(m.chosen)}</b></div>
+      <div class="sub" style="color:#46c46a">Correct: <b>${esc(m.answer)}</b></div>
+    </div>`).join("");
+
+    // Challenge-specific: per-section breakdown across all sessions
+    let sectionSection = "";
+    if (topic.challengeMode) {
+      const sectionAgg = {};
+      for (const s of sessions) {
+        if (!s.bySection) continue;
+        Object.keys(s.bySection).forEach(sid => {
+          if (!sectionAgg[sid]) sectionAgg[sid] = { correct: 0, total: 0 };
+          sectionAgg[sid].correct += s.bySection[sid].correct;
+          sectionAgg[sid].total   += s.bySection[sid].total;
+        });
+      }
+      const sectionRows = Object.keys(sectionAgg).map(sid => {
+        const s = sectionAgg[sid];
+        const acc = s.total ? s.correct / s.total : 0;
+        const label = (DATA.examTopic("year3_sem2", sid) || {}).label || sid;
+        return { sid, label, correct: s.correct, total: s.total, pct: Math.round(acc * 100), acc };
+      }).sort((a, b) => b.acc - a.acc);
+      const rows = sectionRows.map(r => `<div class="rep-card">
+        <div class="t"><span>${esc(r.label)}</span>
+          <span class="${r.acc >= 0.8 ? "tag-strong" : r.acc >= 0.55 ? "tag-mid" : "tag-weak"}">${r.pct}%</span></div>
+        <div class="sub">${r.correct} / ${r.total} across ${sessions.length} challenge${sessions.length === 1 ? "" : "s"}</div>
+        <div class="bar"><i style="width:${r.pct}%;background:${r.acc >= 0.8 ? "#46c46a" : r.acc >= 0.55 ? "#e8b23a" : "#e2484d"}"></i></div>
+      </div>`).join("");
+      sectionSection = `
+        <h1 style="font-size:20px;margin:22px 0 10px">Section-by-section (strongest → weakest)</h1>
+        <div class="rep-grid">${rows}</div>`;
+    }
+
+    // Focused advice line
+    const weakestCat = catRows[0];
+    let advice;
+    if (weakestCat && weakestCat.total >= 3 && weakestCat.acc < 0.7) {
+      advice = `<b>Focus on:</b> ${esc(weakestCat.label)} — ${weakestCat.pct}% across ${weakestCat.total} attempts here.`;
+    } else if (avg < 60) {
+      advice = `<b>Focus on:</b> practising this topic more often — average is ${avg}%.`;
+    } else if (avg >= 80) {
+      advice = `<b>Great work!</b> Average ${avg}% across ${sessions.length} sessions. Keep it up.`;
+    } else {
+      advice = `<b>Steady progress:</b> ${avg}% average. Push a bit harder to reach the 80% band.`;
+    }
+
+    screen().innerHTML = `
+      <div class="topbar"><span class="back" id="bk">← History &amp; Analysis</span><h2>${esc(topic.label)}</h2></div>
+      <div class="page" style="max-width:760px;margin:0 auto">
+        <div class="card" style="padding:22px 22px 20px">
+          <div class="hist-topic-head">
+            <div class="hist-topic-name">${esc(topic.label)}</div>
+            <span class="${band.cls}">${band.txt} · ${avg}%</span>
+          </div>
+          <div class="hist-topic-stats" style="margin-top:6px">
+            <span class="hist-stat"><b>${sessions.length}</b> attempt${sessions.length === 1 ? "" : "s"}</span>
+            <span class="hist-stat">Latest <b>${latest}%</b></span>
+            <span class="hist-stat">Best <b>${best}%</b></span>
+            <span class="hist-stat">Worst <b>${worst}%</b></span>
+            <span class="hist-stat">${trendMark}</span>
+          </div>
+          <div class="summary-box" style="margin-top:14px">${advice}</div>
+          ${sparkSvg ? `<div style="margin-top:12px;text-align:center">${sparkSvg}</div>` : ""}
+        </div>
+
+        ${sectionSection}
+
+        ${catCards ? `<h1 style="font-size:20px;margin:22px 0 10px">Where mistakes cluster (weakest → strongest)</h1>
+        <div class="rep-grid">${catCards}</div>` : ""}
+
+        <h1 style="font-size:20px;margin:22px 0 10px">Every attempt</h1>
+        <div class="hist-session-list">${sessionList}</div>
+
+        ${mistakeCards ? `<h1 style="font-size:20px;margin:22px 0 10px">Recent mistakes (last few sessions)</h1>
+        <div class="rep-grid">${mistakeCards}</div>` : ""}
+
+        <div class="row" style="margin-top:22px;justify-content:center">
+          <button class="btn ghost" id="backBtn">← Back</button>
+          <button class="btn primary" id="practiceBtn">🎯 Start Practice</button>
+        </div>
+      </div>`;
+    $("#bk").onclick       = renderExamHistory;
+    $("#backBtn").onclick  = renderExamHistory;
+    $("#practiceBtn").onclick = () => renderExamPrepTopic("year3_sem2", topicId);
   }
 
   /* ===================== HUD ===================== */
