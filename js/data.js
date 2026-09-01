@@ -196,7 +196,7 @@
         // Mix-all "Challenge Test" — 10 questions from each other topic (Fox
         // contributes 2 passages = 10 questions). No bank of its own; the UI
         // pulls from every other topic in this set.
-        { id: "y3s2_challenge",         label: "🏆 Challenge Test", challengeMode: true, perSection: 10, foxPassages: 2 }
+        { id: "y3s2_challenge",         label: "🏆 Challenge Test", challengeMode: true, perSection: 8, foxPassages: 2 }
       ]
     }
   ];

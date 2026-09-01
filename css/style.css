@@ -639,6 +639,16 @@ button{font-family:inherit;cursor:pointer;border:none;outline:none}
   font-family:var(--creep);font-weight:800;font-size:48px;
   color:var(--gold);letter-spacing:2px;margin:8px 0
 }
+/* Passage box for comprehension questions (Fantastic Mr Fox) — always visible
+   above the question so kids can re-read the story while answering. */
+.exam-passage{
+  background:rgba(0,0,0,.32);border:1px solid var(--border);
+  border-left:4px solid var(--gold);
+  border-radius:10px;padding:14px 16px;margin-bottom:14px;
+  max-height:260px;overflow-y:auto;
+  font-size:14.5px;line-height:1.65;color:#e8e3da;
+  font-family:Georgia,serif
+}
 
 /* Spelling drill — speak button, custom on-screen keyboard, submit
    The custom keyboard bypasses the system keyboard entirely so the phone's

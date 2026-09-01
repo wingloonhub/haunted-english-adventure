@@ -80,10 +80,29 @@
       STORE.state.account = Object.assign(STORE.state.account, account || {});
     },
 
-    // Replace local state with the cloud copy.
+    // Adopt the cloud copy, but merge exam history from local so any sessions
+    // completed while offline (or before the last cloud write finished) survive.
+    // Merge is per-profile, deduplicated by session timestamp.
     hydrate(data) {
       if (!data) return;
-      STORE.state = migrate(data);
+      const cloud = migrate(data);
+      const local = STORE.state;
+      Object.keys(cloud.profiles || {}).forEach(pid => {
+        const cp = cloud.profiles[pid];
+        const lp = (local.profiles || {})[pid];
+        if (!lp || !lp.exam || !lp.exam.history || !lp.exam.history.length) return;
+        const cloudHist = (cp.exam && cp.exam.history) || [];
+        const seen = {};
+        cloudHist.forEach(h => { if (h && h.ts != null) seen[h.ts] = true; });
+        const merged = cloudHist.slice();
+        for (const lh of lp.exam.history) {
+          if (lh && lh.ts != null && !seen[lh.ts]) merged.push(lh);
+        }
+        merged.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+        cp.exam = cp.exam || {};
+        cp.exam.history = merged.slice(0, 50);
+      });
+      STORE.state = cloud;
       STORE.persistLocal();
       STORE.emit();
     },
@@ -174,7 +193,9 @@
       };
       p.exam.history.unshift(clean);
       p.exam.history = p.exam.history.slice(0, 50);
-      STORE.save();
+      // Force an immediate cloud write — losing a completed session because the
+      // kid closed the tab within a second would be a silent data-loss bug.
+      STORE.save({ immediate: true });
     },
 
     applyDefeatPenalty(mid, opts) {
@@ -256,14 +277,20 @@
       try { localStorage.setItem(LS_PREFIX + uidKey, JSON.stringify(STORE.state)); } catch (e) { }
     },
 
-    save() {
+    // Pass { immediate: true } for irreversible actions (e.g. finished exam
+    // session) so the cloud write fires now instead of after the 900 ms debounce.
+    save(opts) {
       const p = STORE.active(); if (p) p.lastPlayed = Date.now();
       STORE.persistLocal();
       STORE.emit();
       if (saveTimer) clearTimeout(saveTimer);
-      saveTimer = setTimeout(() => {
+      if (opts && opts.immediate) {
         if (cloudWriter) cloudWriter(STORE.state);
-      }, 900);
+      } else {
+        saveTimer = setTimeout(() => {
+          if (cloudWriter) cloudWriter(STORE.state);
+        }, 900);
+      }
     },
 
     setCloudWriter(fn) { cloudWriter = fn; },

@@ -190,7 +190,7 @@
 
   // Topic entry — if a question bank exists for this topic in QUESTIONS_EXAM,
   // show the "Start Practice" landing; otherwise show a "Coming soon" placeholder.
-  const EXAM_SESSION_SIZE = 20;
+  const EXAM_SESSION_SIZE = 15;
   function bankFromExam(topicId) {
     return (window.QUESTIONS_EXAM && Array.isArray(window.QUESTIONS_EXAM[topicId])) ? window.QUESTIONS_EXAM[topicId] : null;
   }
@@ -503,6 +503,11 @@
           : ""
       }</div>`
     ).join("");
+    // Passage box (comprehension questions like Fantastic Mr. Fox) — sits above
+    // the question so kids can re-read the story while answering.
+    const passageHtml = q.passage
+      ? `<div class="exam-passage">${esc(q.passage).replace(/\n\n/g, '<br/><br/>').replace(/\n/g, '<br/>')}</div>`
+      : "";
     const body = isSpelling
       ? `<div class="spell-block">
            <p class="spell-instr">Tap the speaker to hear the word, then tap the letters below to spell it.</p>
@@ -516,7 +521,8 @@
              <button class="btn primary sm" id="spellSubmit" disabled>Submit answer</button>
            </div>
          </div>`
-      : `<div class="qtext">${esc(q.q).replace(/___/g, '<span class="blank">?</span>')}</div>
+      : `${passageHtml}
+         <div class="qtext">${esc(q.q).replace(/___/g, '<span class="blank">?</span>')}</div>
          <div class="opts" id="opts">
            ${q.options.map((o, i) => `<button class="opt" data-i="${i}"><span class="letter">${"ABCD"[i]}</span>${esc(o)}</button>`).join("")}
          </div>`;
@@ -671,7 +677,10 @@
         bySection: examState.bySection || null,     // present for Challenge Test
         mistakes: mistakes
       });
-    } catch (e) { /* ignore save errors — results still render */ }
+    } catch (e) {
+      // Log so a real save failure is diagnosable — but let the results render.
+      console.warn("[exam] recordExamSession failed:", e && e.message ? e.message : e);
+    }
     const band = pct >= 80 ? { emoji: "🏆", head: "Excellent!", tone: "good" }
               : pct >= 60 ? { emoji: "👍", head: "Good work!", tone: "mid" }
               : pct >= 40 ? { emoji: "🙂", head: "Keep practicing.", tone: "mid" }
@@ -684,12 +693,16 @@
     }).sort((a, b) => a.acc - b.acc);
     const weakest = catRows.filter(r => r.acc < 0.7);
     const strongest = catRows.filter(r => r.acc >= 0.8);
-    // Recent mistakes list — up to 5
+    // Recent mistakes list — up to 5. Spelling questions have no `options`,
+    // so read `word` for the correct answer and the raw typed string for the guess.
     const mistakes = examState.answers.filter(a => !a.correct).slice(0, 5).map(a => {
-      const chosenText = a.q.options[a.chosen];
-      const goodText   = a.q.options[a.q.answer];
+      const q = a.q;
+      const stem = q.q || (q.word ? ("Spell the word") : "Question");
+      const chosenText = q.options ? (q.options[a.chosen] != null ? q.options[a.chosen] : String(a.chosen))
+                                   : String(a.chosen);
+      const goodText   = q.options ? (q.options[q.answer] || "") : (q.word || "");
       return `<div class="rep-card">
-        <div class="sub" style="margin-bottom:6px">${esc(a.q.q)}</div>
+        <div class="sub" style="margin-bottom:6px">${esc(stem)}</div>
         <div class="sub" style="color:#e2484d">Your answer: <b>${esc(chosenText)}</b></div>
         <div class="sub" style="color:#46c46a">Correct: <b>${esc(goodText)}</b></div>
       </div>`;
