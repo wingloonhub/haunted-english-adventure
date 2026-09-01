@@ -162,14 +162,15 @@
       if (!p.exam.history) p.exam.history = [];
       // Ensure a timestamp — cap mistakes to 10 to keep the stored blob small.
       const clean = {
-        setId:   entry.setId,
-        topicId: entry.topicId,
-        ts:      entry.ts || Date.now(),
-        total:   entry.total,
-        correct: entry.correct,
-        pct:     entry.total ? Math.round(entry.correct / entry.total * 100) : 0,
-        byCat:   entry.byCat || {},
-        mistakes: (entry.mistakes || []).slice(0, 10)
+        setId:      entry.setId,
+        topicId:    entry.topicId,
+        ts:         entry.ts || Date.now(),
+        total:      entry.total,
+        correct:    entry.correct,
+        pct:        entry.total ? Math.round(entry.correct / entry.total * 100) : 0,
+        byCat:      entry.byCat || {},
+        bySection:  entry.bySection || null,
+        mistakes:   (entry.mistakes || []).slice(0, 10)
       };
       p.exam.history.unshift(clean);
       p.exam.history = p.exam.history.slice(0, 50);

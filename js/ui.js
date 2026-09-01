@@ -209,6 +209,9 @@
     const set = DATA.examSet(setId);
     const topic = DATA.examTopic(setId, topicId);
     if (!set || !topic) return renderExamPrep();
+    // Challenge Test has no bank of its own — it mixes every other topic in
+    // this set. Show a landing card that describes the mix, then run a session.
+    if (topic.challengeMode) return renderChallengeLanding(setId, topic);
     const bank = bankFromExam(topicId);
     if (!bank || !bank.length) {
       // No questions wired in yet.
@@ -253,6 +256,84 @@
     $("#bk").onclick    = () => renderExamPrepSet(setId);
     $("#bkBtn").onclick = () => renderExamPrepSet(setId);
     $("#startBtn").onclick = () => startExamSession(setId, topicId, bank, n);
+  }
+
+  // ===== Challenge Test — mix all other topics in the set =====
+  // List of contributing topics (in display order), excluding the challenge
+  // topic itself and any other challenge-mode topics.
+  function challengeSources(setId) {
+    const set = DATA.examSet(setId);
+    if (!set) return [];
+    return set.topics.filter(t => !t.challengeMode && bankFromExam(t.id) && bankFromExam(t.id).length);
+  }
+  // Sample 10 questions from each non-passage topic + N passages from Fox.
+  // Tag each pulled question with sourceTopic so results can group by section.
+  function sampleChallengeQuestions(setId, perSection, foxPassages) {
+    const out = [];
+    const sources = challengeSources(setId);
+    for (const t of sources) {
+      const bank = bankFromExam(t.id);
+      if (!bank) continue;
+      let picked;
+      if (t.passageMode) {
+        picked = samplePassageQuestions(bank, foxPassages || t.passageCount || 2);
+      } else {
+        picked = sampleExamQuestions(bank, perSection);
+      }
+      for (const q of picked) out.push(Object.assign({}, q, { sourceTopic: t.id }));
+    }
+    // Fully shuffle so sections are jumbled (real "challenge" feel).
+    return QUESTIONS.shuffle(out);
+  }
+  function renderChallengeLanding(setId, topic) {
+    const sources = challengeSources(setId);
+    const per = topic.perSection || 10;
+    const foxN = topic.foxPassages || 2;
+    // Total = per × (non-passage sources) + foxN × 5 (assumed 5 q/passage)
+    let total = 0;
+    for (const t of sources) {
+      if (t.passageMode) total += (foxN) * (t.qPerPassage || 5);
+      else total += per;
+    }
+    const list = sources.map(t => {
+      const count = t.passageMode ? `${foxN} passages` : `${per} questions`;
+      return `<li><b>${esc(t.label)}</b> — ${count}</li>`;
+    }).join("");
+    screen().innerHTML = `
+      <div class="topbar"><span class="back" id="bk">← ${esc((DATA.examSet(setId) || {}).label || "")}</span><h2>${esc(topic.label)}</h2></div>
+      <div class="page" style="max-width:620px;margin:0 auto;text-align:center">
+        <div class="card" style="padding:26px;margin-top:16px">
+          <div class="big-emoji">🏆</div>
+          <h2 style="margin:6px 0 10px">${esc(topic.label)}</h2>
+          <p class="muted" style="line-height:1.7">
+            Mixed practice across <b>${sources.length} topics</b> — <b>${total} questions</b> in total, shuffled.
+            You'll see which sections you scored highest and lowest in at the end, and the history tracks your improvement over time.
+          </p>
+          <ul class="challenge-source-list">${list}</ul>
+          <div class="row" style="margin-top:14px">
+            <button class="btn ghost" id="bkBtn">← Back</button>
+            <button class="btn primary" id="startBtn">Start the Challenge →</button>
+          </div>
+        </div>
+      </div>`;
+    $("#bk").onclick    = () => renderExamPrepSet(setId);
+    $("#bkBtn").onclick = () => renderExamPrepSet(setId);
+    $("#startBtn").onclick = () => startChallengeSession(setId, topic);
+  }
+  function startChallengeSession(setId, topic) {
+    const per  = topic.perSection || 10;
+    const foxN = topic.foxPassages || 2;
+    const questions = sampleChallengeQuestions(setId, per, foxN);
+    examState = {
+      setId, topicId: topic.id,
+      challenge: true,
+      questions,
+      idx: 0,
+      answers: [],
+      byCat: {},
+      bySection: {}    // sourceTopic → { correct, total }
+    };
+    renderExamQuestion();
   }
 
   // Category labels for the results analysis — per-topic overrides so
@@ -409,15 +490,29 @@
     const topicLabel = DATA.examTopic(examState.setId, examState.topicId).label;
     const isSpelling = !!q.spelling;
 
-    // Question-body markup — either the standard MCQ block or the spelling block.
+    // Question-body markup — MCQ, or the Spelling block with a custom on-screen
+    // keyboard (so the phone's autocorrect suggestion strip can't help the kid).
+    // QWERTY layout — reads left-to-right the way a real keyboard does.
+    const KB_ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
+    const kbHtml = KB_ROWS.map((row, r) =>
+      `<div class="kb-row">${
+        row.split("").map(ch => `<button type="button" class="kb-key" data-key="${ch}">${ch}</button>`).join("")
+      }${
+        r === KB_ROWS.length - 1
+          ? `<button type="button" class="kb-key kb-wide kb-back" data-key="back">⌫</button>`
+          : ""
+      }</div>`
+    ).join("");
     const body = isSpelling
       ? `<div class="spell-block">
-           <p class="spell-instr">Tap the speaker to hear the word, then type it below.</p>
+           <p class="spell-instr">Tap the speaker to hear the word, then tap the letters below to spell it.</p>
            <button class="btn primary spell-hear" id="hearBtn" type="button">🔊 Hear the word</button>
-           <input class="spell-input" id="spellInput" type="text"
-                  autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
-                  placeholder="Type the word here…" />
-           <div class="builder-actions" style="justify-content:flex-end;margin-top:12px">
+           <div class="spell-display" id="spellDisplay" aria-label="Your spelling"><span class="spell-placeholder">Tap letters…</span></div>
+           <div class="spell-keyboard" id="spellKb">
+             ${kbHtml}
+           </div>
+           <div class="builder-actions" style="justify-content:space-between;margin-top:6px">
+             <button class="btn ghost sm" id="spellClear" disabled>↺ Clear</button>
              <button class="btn primary sm" id="spellSubmit" disabled>Submit answer</button>
            </div>
          </div>`
@@ -450,6 +545,14 @@
       if (!examState.byCat[c]) examState.byCat[c] = { correct: 0, total: 0 };
       examState.byCat[c].total++;
       if (correct) examState.byCat[c].correct++;
+      // Challenge mode — also tally per source-section for the results screen.
+      if (q.sourceTopic) {
+        if (!examState.bySection) examState.bySection = {};
+        const s = q.sourceTopic;
+        if (!examState.bySection[s]) examState.bySection[s] = { correct: 0, total: 0 };
+        examState.bySection[s].total++;
+        if (correct) examState.bySection[s].correct++;
+      }
       setTimeout(() => {
         examState.idx++;
         if (examState.idx >= total) renderExamResults();
@@ -458,42 +561,62 @@
     }
 
     if (isSpelling) {
-      // Auto-speak the word on load (user has already gestured via Start Practice).
+      // Auto-speak the word on load (Start Practice was a user gesture, so autoplay works).
       const spoken = speakWord(q.word);
       if (!spoken) {
-        // No TTS available — show the word instead so the kid can still practice.
         const instr = screen().querySelector(".spell-instr");
-        if (instr) instr.innerHTML = "Type this word: <b>" + esc(q.word) + "</b>";
+        if (instr) instr.innerHTML = "Spell this word: <b>" + esc(q.word) + "</b>";
       }
       $("#hearBtn").onclick = () => speakWord(q.word);
-      const input  = $("#spellInput");
-      const submit = $("#spellSubmit");
-      input.focus();
-      input.oninput = () => { submit.disabled = busyExam || input.value.trim().length === 0; };
+
+      const display = $("#spellDisplay");
+      const clear   = $("#spellClear");
+      const submit  = $("#spellSubmit");
+      const kb      = $("#spellKb");
+      let typed = "";
+      function paint() {
+        if (!typed) {
+          display.innerHTML = '<span class="spell-placeholder">Tap letters…</span>';
+        } else {
+          display.textContent = typed;
+        }
+        clear.disabled  = busyExam || typed.length === 0;
+        submit.disabled = busyExam || typed.length === 0;
+      }
+      paint();
+      kb.querySelectorAll(".kb-key").forEach(btn => {
+        btn.onclick = () => {
+          if (busyExam) return;
+          const key = btn.dataset.key;
+          if (key === "back") typed = typed.slice(0, -1);
+          else typed += key;
+          paint();
+        };
+      });
+      clear.onclick = () => { if (!busyExam) { typed = ""; paint(); } };
+
       function grade() {
-        if (busyExam) return;
-        const typed = (input.value || "").trim().toLowerCase();
-        if (!typed) return;
+        if (busyExam || !typed) return;
         busyExam = true;
-        // Accept the primary word OR any alt spellings (US/UK variants).
+        const guess = typed.toLowerCase();
         const accept = [q.word.toLowerCase()].concat((q.alt || []).map(a => a.toLowerCase()));
-        const correct = accept.indexOf(typed) > -1;
-        input.disabled = true;
+        const correct = accept.indexOf(guess) > -1;
+        // Lock the keyboard
+        kb.querySelectorAll(".kb-key").forEach(b => b.disabled = true);
+        clear.disabled = true;
         submit.disabled = true;
-        input.classList.add(correct ? "spell-ok" : "spell-bad");
-        // Show correction beneath the input if wrong.
+        display.classList.add(correct ? "spell-ok" : "spell-bad");
         if (!correct) {
           const hint = document.createElement("div");
           hint.className = "spell-correction";
           hint.innerHTML = `<span class="muted">Correct spelling:</span> <b>${esc(q.word)}</b>`;
-          submit.parentElement.parentElement.appendChild(hint);
+          display.parentElement.appendChild(hint);
         }
         answerFlash(correct);
         SOUND.play(correct ? "correct" : "wrong");
-        finishAnswer(correct, input.value);
+        finishAnswer(correct, typed);
       }
       submit.onclick = grade;
-      input.onkeydown = (e) => { if (e.key === "Enter") grade(); };
       return;
     }
 
@@ -545,6 +668,7 @@
         total: total,
         correct: correct,
         byCat: examState.byCat,
+        bySection: examState.bySection || null,     // present for Challenge Test
         mistakes: mistakes
       });
     } catch (e) { /* ignore save errors — results still render */ }
@@ -573,6 +697,43 @@
     const advice = weakest.length
       ? `<p><b>Practice more:</b> ${weakest.map(r => esc(r.label)).join("; ")}.</p>`
       : `<p><b>Strong across the board.</b> Keep it up!</p>`;
+
+    // Challenge Test — build the per-section breakdown, ranked strongest → weakest.
+    const isChallenge = !!examState.challenge;
+    let sectionSection = "";
+    if (isChallenge && examState.bySection) {
+      const sectionRows = Object.keys(examState.bySection).map(sid => {
+        const s = examState.bySection[sid];
+        const p = s.total ? s.correct / s.total : 0;
+        const label = (DATA.examTopic(examState.setId, sid) || {}).label || sid;
+        return { sid, label, correct: s.correct, total: s.total, pct: Math.round(p * 100), acc: p };
+      });
+      sectionRows.sort((a, b) => b.acc - a.acc);   // strongest first
+      const strong = sectionRows[0], weak = sectionRows[sectionRows.length - 1];
+      const highlight = `
+        <div class="challenge-highlight">
+          <div class="challenge-highlight-item ok">
+            <div class="challenge-highlight-label">💪 Strongest section</div>
+            <div class="challenge-highlight-name">${esc(strong.label)}</div>
+            <div class="challenge-highlight-pct">${strong.pct}% <span class="muted">(${strong.correct}/${strong.total})</span></div>
+          </div>
+          <div class="challenge-highlight-item bad">
+            <div class="challenge-highlight-label">🎯 Weakest section</div>
+            <div class="challenge-highlight-name">${esc(weak.label)}</div>
+            <div class="challenge-highlight-pct">${weak.pct}% <span class="muted">(${weak.correct}/${weak.total})</span></div>
+          </div>
+        </div>`;
+      const rows = sectionRows.map(r => `<div class="rep-card">
+        <div class="t"><span>${esc(r.label)}</span>
+          <span class="${r.acc >= 0.8 ? "tag-strong" : r.acc >= 0.55 ? "tag-mid" : "tag-weak"}">${r.pct}%</span></div>
+        <div class="sub">${r.correct} / ${r.total} correct</div>
+        <div class="bar"><i style="width:${r.pct}%;background:${r.acc >= 0.8 ? "#46c46a" : r.acc >= 0.55 ? "#e8b23a" : "#e2484d"}"></i></div>
+      </div>`).join("");
+      sectionSection = `
+        <h1 style="font-size:20px;margin:26px 0 10px">Section by section</h1>
+        ${highlight}
+        <div class="rep-grid">${rows}</div>`;
+    }
     const topicLabel = (DATA.examTopic(examState.setId, examState.topicId) || {}).label || "";
     const setLabel   = (DATA.examSet(examState.setId) || {}).label || "";
     screen().innerHTML = `
@@ -585,7 +746,9 @@
           <div class="muted" style="font-weight:700;letter-spacing:.5px">${pct}%  ·  ${esc(topicLabel)} · ${esc(setLabel)}</div>
         </div>
 
-        <h1 style="font-size:20px;margin:26px 0 10px">Where you did well and where to practice</h1>
+        ${sectionSection}
+
+        <h1 style="font-size:20px;margin:26px 0 10px">${isChallenge ? "Category breakdown (all sections combined)" : "Where you did well and where to practice"}</h1>
         <div class="rep-grid">
           ${catRows.map(r => `<div class="rep-card">
             <div class="t"><span>${esc(r.label)}</span>
@@ -608,7 +771,11 @@
     const savedTopicId = examState.topicId;
     $("#bk").onclick        = () => { examState = null; renderExamPrepSet(savedSetId); };
     $("#topicsBtn").onclick = () => { examState = null; renderExamPrepSet(savedSetId); };
-    $("#againBtn").onclick  = () => startExamSession(savedSetId, savedTopicId, bankFromExam(savedTopicId));   // uses topic sessionSize default
+    $("#againBtn").onclick  = () => {
+      const t = DATA.examTopic(savedSetId, savedTopicId);
+      if (t && t.challengeMode) startChallengeSession(savedSetId, t);
+      else startExamSession(savedSetId, savedTopicId, bankFromExam(savedTopicId));
+    };
   }
 
   /* ===================== EXAM HISTORY & ANALYSIS ===================== */
@@ -687,7 +854,31 @@
         return { cat: c, label: catLabel(tid, c), pct: Math.round(acc * 100), correct: s.correct, total: s.total, acc };
       }).sort((a, b) => a.acc - b.acc);
       const weakestCat = catRows[0];
-      return { topicId: tid, label: topic.label, sessions: sess.length, latest, best, worst, avg, trend, weakestCat, catRows };
+      // Challenge Test — aggregate the per-section stats across ALL its attempts.
+      let sectionAgg = null;
+      if (topic.challengeMode) {
+        sectionAgg = {};
+        for (const s of sess) {
+          if (!s.bySection) continue;
+          Object.keys(s.bySection).forEach(sid => {
+            if (!sectionAgg[sid]) sectionAgg[sid] = { correct: 0, total: 0, latest: null };
+            sectionAgg[sid].correct += s.bySection[sid].correct;
+            sectionAgg[sid].total   += s.bySection[sid].total;
+          });
+        }
+        // Attach latest score per section (from the newest session that has it).
+        for (const s of sess) {
+          if (!s.bySection) continue;
+          Object.keys(s.bySection).forEach(sid => {
+            if (sectionAgg[sid] && sectionAgg[sid].latest === null) {
+              const bs = s.bySection[sid];
+              sectionAgg[sid].latest = bs.total ? Math.round(bs.correct / bs.total * 100) : null;
+            }
+          });
+        }
+      }
+      return { topicId: tid, label: topic.label, isChallenge: !!topic.challengeMode,
+               sessions: sess.length, latest, best, worst, avg, trend, weakestCat, catRows, sectionAgg };
     }).sort((a, b) => a.avg - b.avg);
 
     // Overall summary
@@ -740,6 +931,34 @@
             : `<div class="hist-weak muted"><span class="hist-label">✅ All categories at ≥ 75%</span> Great balance across question types.</div>`)
         : "";
       const suggestion = `<div class="hist-suggest"><span class="hist-label">💡 Suggestion</span> ${suggestionFor(t)}</div>`;
+      // Challenge Test — extra block: per-section aggregate ranked strongest → weakest
+      let challengeBlock = "";
+      if (t.isChallenge && t.sectionAgg) {
+        const rows = Object.keys(t.sectionAgg).map(sid => {
+          const s = t.sectionAgg[sid];
+          const acc = s.total ? s.correct / s.total : 0;
+          const label = (DATA.examTopic("year3_sem2", sid) || {}).label || sid;
+          return { sid, label, correct: s.correct, total: s.total, pct: Math.round(acc * 100), acc, latest: s.latest };
+        }).sort((a, b) => b.acc - a.acc);
+        if (rows.length) {
+          const strong = rows[0], weak = rows[rows.length - 1];
+          const list = rows.map(r => `
+            <div class="challenge-hist-row">
+              <span class="challenge-hist-name">${esc(r.label)}</span>
+              <span class="${r.acc >= 0.8 ? "tag-strong" : r.acc >= 0.55 ? "tag-mid" : "tag-weak"}">${r.pct}%</span>
+              <span class="muted" style="font-size:12px">(${r.correct}/${r.total})</span>
+            </div>`).join("");
+          challengeBlock = `
+            <div class="challenge-hist-highlight">
+              <div><span class="hist-label">💪 Strongest</span> <b>${esc(strong.label)}</b> — ${strong.pct}%</div>
+              <div><span class="hist-label">🎯 Weakest</span> <b>${esc(weak.label)}</b> — ${weak.pct}%</div>
+            </div>
+            <details class="challenge-hist-details">
+              <summary>All ${rows.length} sections — combined across ${t.sessions} attempt${t.sessions === 1 ? "" : "s"}</summary>
+              <div class="challenge-hist-list">${list}</div>
+            </details>`;
+        }
+      }
       return `<div class="hist-topic-card" data-topic="${esc(t.topicId)}">
         <div class="hist-topic-head">
           <div class="hist-topic-name">${esc(t.label)}</div>
@@ -752,7 +971,7 @@
           <span class="hist-stat">Worst <b>${t.worst}%</b></span>
           <span class="hist-stat">${trendMark}</span>
         </div>
-        ${weakLine}
+        ${challengeBlock || weakLine}
         ${suggestion}
       </div>`;
     }).join("");

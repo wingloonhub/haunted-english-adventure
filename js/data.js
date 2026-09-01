@@ -192,7 +192,11 @@
         { id: "y3s2_final_punctuation", label: "Final Punctuation" },
         { id: "y3s2_capital_letters",   label: "Capital Letters" },
         { id: "y3s2_spelling",          label: "Spelling", sessionSize: 10 },
-        { id: "y3s2_fantastic_mr_fox",  label: "Fantastic Mr. Fox", passageMode: true, passageCount: 3, qPerPassage: 5 }
+        { id: "y3s2_fantastic_mr_fox",  label: "Fantastic Mr. Fox", passageMode: true, passageCount: 3, qPerPassage: 5 },
+        // Mix-all "Challenge Test" — 10 questions from each other topic (Fox
+        // contributes 2 passages = 10 questions). No bank of its own; the UI
+        // pulls from every other topic in this set.
+        { id: "y3s2_challenge",         label: "🏆 Challenge Test", challengeMode: true, perSection: 10, foxPassages: 2 }
       ]
     }
   ];
