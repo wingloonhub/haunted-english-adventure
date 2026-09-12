@@ -704,6 +704,21 @@ button{font-family:inherit;cursor:pointer;border:none;outline:none}
 }
 .spell-correction b{color:#fff;font-size:17px;letter-spacing:1px}
 
+/* Typed fill-in-the-blank (Present Perfect has/have) — letters land in the sentence */
+.qtext.typed-q{font-size:22px;text-align:center;margin:4px 0 6px}
+.typed-blank{
+  display:inline-block;min-width:84px;padding:2px 10px;margin:0 4px;
+  color:var(--gold);border-bottom:3px dashed var(--gold);border-radius:6px 6px 0 0;
+  text-align:center;letter-spacing:1px;transition:color .15s,background .15s,border-color .15s
+}
+.typed-blank.typed-empty{color:var(--muted)}
+.typed-blank.spell-ok{color:#a9eebc;border-color:#46c46a;background:rgba(70,196,106,.18)}
+.typed-blank.spell-bad{color:#ffc8ca;border-color:#e2484d;background:rgba(226,72,77,.18)}
+.typed-correction{margin-top:0;line-height:1.6}
+.typed-correction b{letter-spacing:.5px}
+.typed-fixed{margin-top:4px;color:#a9eebc;font-weight:700}
+.typed-fixed u{text-decoration-color:#46c46a;text-underline-offset:3px}
+
 /* ---------- Exam history & analysis ---------- */
 .hist-topic-grid{display:flex;flex-direction:column;gap:12px;margin-top:8px}
 .hist-topic-card{

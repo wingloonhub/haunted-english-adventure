@@ -239,7 +239,7 @@
     // Passage-based topics (Fantastic Mr Fox) describe themselves differently.
     const pitch = topic.passageMode
       ? `<b>${topic.passageCount || 3} random passages</b> (about ${n} questions in total) drawn from ${Math.floor(bank.length / (topic.qPerPassage || 5))} stories.<br/>Read each passage carefully, then answer the questions below it.`
-      : `<b>${n} random questions</b> drawn from a bank of ${bank.length}.<br/>No monsters, no lives lost — pick an answer for each, and you'll see your score plus which areas to practice at the end.`;
+      : `<b>${n} random questions</b> drawn from a bank of ${bank.length}.<br/>No monsters, no lives lost — ${bank.every(q => q.typed) ? "type the missing word for each" : "pick an answer for each"}, and you'll see your score plus which areas to practice at the end.`;
     screen().innerHTML = `
       <div class="topbar"><span class="back" id="bk">← ${esc(set.label)}</span><h2>${esc(topic.label)}</h2></div>
       <div class="page" style="max-width:560px;margin:0 auto;text-align:center">
@@ -362,6 +362,10 @@
       C: "Whole-sentence pronoun choice"
     },
     y3s2_present_perfect: {
+      ONE:  "One person / one thing → HAS (she, he, it, Sarah, the dog…)",
+      MORE: "More than one → HAVE (we, they, the boys, Ben and Ali…)",
+      IY:   "I / You → always HAVE",
+      // Older sessions (multiple-choice bank) — kept so past history still reads well.
       H: "Helping verb — has vs have (Section A)",
       P: "Past participle form — has/have + past participle (Section B)",
       C: "Whole-sentence present-perfect choice (Section D)"
@@ -489,6 +493,9 @@
     const num = examState.idx + 1;
     const topicLabel = DATA.examTopic(examState.setId, examState.topicId).label;
     const isSpelling = !!q.spelling;
+    // Typed fill-in-the-blank (e.g. Present Perfect has/have) — same on-screen
+    // keyboard as Spelling, but the letters go straight into the sentence blank.
+    const isTyped = !!q.typed;
 
     // Question-body markup — MCQ, or the Spelling block with a custom on-screen
     // keyboard (so the phone's autocorrect suggestion strip can't help the kid).
@@ -521,6 +528,21 @@
              <button class="btn primary sm" id="spellSubmit" disabled>Submit answer</button>
            </div>
          </div>`
+      : isTyped
+      ? (() => {
+          const parts = q.q.split("___");
+          return `<div class="spell-block">
+           <p class="spell-instr">Type <b>has</b> or <b>have</b> to fill the blank.</p>
+           <div class="qtext typed-q">${esc(parts[0])}<span class="typed-blank" id="spellDisplay">?</span>${esc(parts.slice(1).join("___"))}</div>
+           <div class="spell-keyboard" id="spellKb">
+             ${kbHtml}
+           </div>
+           <div class="builder-actions" style="justify-content:space-between;margin-top:6px">
+             <button class="btn ghost sm" id="spellClear" disabled>↺ Clear</button>
+             <button class="btn primary sm" id="spellSubmit" disabled>Submit answer</button>
+           </div>
+         </div>`;
+        })()
       : `${passageHtml}
          <div class="qtext">${esc(q.q).replace(/___/g, '<span class="blank">?</span>')}</div>
          <div class="opts" id="opts">
@@ -545,7 +567,7 @@
     };
 
     let busyExam = false;
-    function finishAnswer(correct, chosenText) {
+    function finishAnswer(correct, chosenText, wrongDelayMs) {
       examState.answers.push({ correct, chosen: chosenText, q });
       const c = q.cat || "?";
       if (!examState.byCat[c]) examState.byCat[c] = { correct: 0, total: 0 };
@@ -563,7 +585,58 @@
         examState.idx++;
         if (examState.idx >= total) renderExamResults();
         else renderExamQuestion();
-      }, correct ? 900 : 1900);
+      }, correct ? 900 : (wrongDelayMs || 1900));
+    }
+
+    if (isTyped) {
+      const display = $("#spellDisplay");
+      const clear   = $("#spellClear");
+      const submit  = $("#spellSubmit");
+      const kb      = $("#spellKb");
+      const MAX_LEN = 8;
+      let typed = "";
+      function paint() {
+        display.textContent = typed || "?";
+        display.classList.toggle("typed-empty", !typed);
+        clear.disabled  = busyExam || typed.length === 0;
+        submit.disabled = busyExam || typed.length === 0;
+      }
+      paint();
+      kb.querySelectorAll(".kb-key").forEach(btn => {
+        btn.onclick = () => {
+          if (busyExam) return;
+          const key = btn.dataset.key;
+          if (key === "back") typed = typed.slice(0, -1);
+          else if (typed.length < MAX_LEN) typed += key;
+          paint();
+        };
+      });
+      clear.onclick = () => { if (!busyExam) { typed = ""; paint(); } };
+      submit.onclick = () => {
+        if (busyExam || !typed) return;
+        busyExam = true;
+        const correct = typed.trim().toLowerCase() === q.word.toLowerCase();
+        kb.querySelectorAll(".kb-key").forEach(b => b.disabled = true);
+        clear.disabled = true;
+        submit.disabled = true;
+        display.classList.add(correct ? "spell-ok" : "spell-bad");
+        if (!correct) {
+          // Name the subject first, then show the corrected sentence.
+          const subject = q.q.split("___")[0].trim();
+          const rule = q.cat === "IY"   ? `<b>${esc(subject)}</b> → always <b>HAVE</b>`
+                     : q.cat === "ONE"  ? `<b>${esc(subject)}</b> = one → <b>HAS</b>`
+                     :                    `<b>${esc(subject)}</b> = more than one → <b>HAVE</b>`;
+          const fixed = esc(q.q).replace("___", `<u>${esc(q.word)}</u>`);
+          const hint = document.createElement("div");
+          hint.className = "spell-correction typed-correction";
+          hint.innerHTML = `<div>${rule}</div><div class="typed-fixed">✔ ${fixed}</div>`;
+          display.closest(".spell-block").insertBefore(hint, kb);
+        }
+        answerFlash(correct);
+        SOUND.play(correct ? "correct" : "wrong");
+        finishAnswer(correct, typed, 3200);
+      };
+      return;
     }
 
     if (isSpelling) {
