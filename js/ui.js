@@ -357,8 +357,11 @@
   };
   const EXAM_CAT_LABELS_BY_TOPIC = {
     y3s2_pronouns: {
-      S: "Subject pronouns (he, she, it, we, they)",
-      O: "Object pronouns (him, her, us, them, me)",
+      S:  "Subject pronouns — doing the action (I, you, he, she, it, we, they)",
+      O:  "Object pronouns — receiving the action (me, you, him, her, it, us, them)",
+      PA: "Possessive before a noun (my, your, his, her, its, our, their)",
+      PP: "Possessive standing alone (mine, yours, his, hers, ours, theirs)",
+      // Older sessions (multiple-choice bank) — kept so past history still reads well.
       C: "Whole-sentence pronoun choice"
     },
     y3s2_present_perfect: {
@@ -400,6 +403,31 @@
     y3s2_fantastic_mr_fox: {
       F: "Fact recall — who, what, where, when questions straight from the passage",
       I: "Inference — why, how, and 'what does this show' questions that need thinking"
+    }
+  };
+  // Typed fill-in-the-blank topics — the instruction line above the sentence,
+  // and the rule shown with the corrected sentence after a wrong answer.
+  const TYPED_TOPICS = {
+    y3s2_present_perfect: {
+      instr: () => "Type <b>has</b> or <b>have</b> to fill the blank.",
+      rule(q) {
+        // Name the subject first, e.g. "The robin = one → HAS".
+        const subject = esc(q.q.split("___")[0].trim());
+        return q.cat === "IY"  ? `<b>${subject}</b> → always <b>HAVE</b>`
+             : q.cat === "ONE" ? `<b>${subject}</b> = one → <b>HAS</b>`
+             :                   `<b>${subject}</b> = more than one → <b>HAVE</b>`;
+      }
+    },
+    y3s2_pronouns: {
+      instr: q => (q.cat === "PA" || q.cat === "PP")
+        ? "Type the correct <b>possessive word</b> (my, mine, your, yours…)."
+        : "Type the correct <b>pronoun</b> (I, me, he, him, she, her…).",
+      rule(q) {
+        return q.cat === "S"  ? "Doing the action → <b>I, you, he, she, it, we, they</b>"
+             : q.cat === "O"  ? "Receiving the action → <b>me, you, him, her, it, us, them</b>"
+             : q.cat === "PA" ? "A noun comes next → <b>my, your, his, her, its, our, their</b>"
+             :                  "Stands alone → <b>mine, yours, his, hers, ours, theirs</b>";
+      }
     }
   };
   function catLabel(topicId, code) {
@@ -496,6 +524,7 @@
     // Typed fill-in-the-blank (e.g. Present Perfect has/have) — same on-screen
     // keyboard as Spelling, but the letters go straight into the sentence blank.
     const isTyped = !!q.typed;
+    const typedCfg = (isTyped && TYPED_TOPICS[q.sourceTopic || examState.topicId]) || {};
 
     // Question-body markup — MCQ, or the Spelling block with a custom on-screen
     // keyboard (so the phone's autocorrect suggestion strip can't help the kid).
@@ -532,7 +561,7 @@
       ? (() => {
           const parts = q.q.split("___");
           return `<div class="spell-block">
-           <p class="spell-instr">Type <b>has</b> or <b>have</b> to fill the blank.</p>
+           <p class="spell-instr">${typedCfg.instr ? typedCfg.instr(q) : "Type the missing word."}</p>
            <div class="qtext typed-q">${esc(parts[0])}<span class="typed-blank" id="spellDisplay">?</span>${esc(parts.slice(1).join("___"))}</div>
            <div class="spell-keyboard" id="spellKb">
              ${kbHtml}
@@ -594,9 +623,14 @@
       const submit  = $("#spellSubmit");
       const kb      = $("#spellKb");
       const MAX_LEN = 8;
+      // The keyboard is lowercase-only, so capitalise the blank when it starts
+      // a sentence (and for "I"). Grading ignores case either way.
+      const beforeBlank = q.q.split("___")[0].trim();
+      const startsSentence = !beforeBlank || /[.!?]$/.test(beforeBlank);
       let typed = "";
       function paint() {
-        display.textContent = typed || "?";
+        const shown = (startsSentence || typed === "i") ? typed.charAt(0).toUpperCase() + typed.slice(1) : typed;
+        display.textContent = shown || "?";
         display.classList.toggle("typed-empty", !typed);
         clear.disabled  = busyExam || typed.length === 0;
         submit.disabled = busyExam || typed.length === 0;
@@ -621,15 +655,12 @@
         submit.disabled = true;
         display.classList.add(correct ? "spell-ok" : "spell-bad");
         if (!correct) {
-          // Name the subject first, then show the corrected sentence.
-          const subject = q.q.split("___")[0].trim();
-          const rule = q.cat === "IY"   ? `<b>${esc(subject)}</b> → always <b>HAVE</b>`
-                     : q.cat === "ONE"  ? `<b>${esc(subject)}</b> = one → <b>HAS</b>`
-                     :                    `<b>${esc(subject)}</b> = more than one → <b>HAVE</b>`;
+          // Show the topic's rule first, then the corrected sentence.
+          const rule = typedCfg.rule ? typedCfg.rule(q) : "";
           const fixed = esc(q.q).replace("___", `<u>${esc(q.word)}</u>`);
           const hint = document.createElement("div");
           hint.className = "spell-correction typed-correction";
-          hint.innerHTML = `<div>${rule}</div><div class="typed-fixed">✔ ${fixed}</div>`;
+          hint.innerHTML = `${rule ? `<div>${rule}</div>` : ""}<div class="typed-fixed">✔ ${fixed}</div>`;
           display.closest(".spell-block").insertBefore(hint, kb);
         }
         answerFlash(correct);
