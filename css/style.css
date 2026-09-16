@@ -749,6 +749,33 @@ button{font-family:inherit;cursor:pointer;border:none;outline:none}
 .hist-session-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .hist-session-topic{font-weight:700;color:#fff;font-size:14.5px}
 .hist-session-when{margin-top:2px;font-size:12px}
+.hist-session-open{cursor:pointer;transition:border-color .12s,background .12s}
+.hist-session-open:hover,.hist-session-open:focus-visible{border-color:var(--gold);background:rgba(240,181,58,.08);outline:none}
+.hist-session-more{font-size:12px;font-weight:800;color:var(--gold);white-space:nowrap}
+
+/* Session details — every question in one test */
+.sess-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.sess-q-list{display:flex;flex-direction:column;gap:10px}
+.sess-q{
+  background:var(--panel-solid);border:1px solid var(--border);border-left:4px solid #46c46a;
+  border-radius:12px;padding:12px 14px
+}
+.sess-q.bad{border-left-color:#e2484d;background:linear-gradient(90deg,rgba(226,72,77,.10),transparent 60%),var(--panel-solid)}
+.sess-q-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px}
+.sess-q-num{font-weight:900;font-size:13px;color:#9af0b3}
+.sess-q.bad .sess-q-num{color:#ff9aa0}
+.sess-q-sec{font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.4px;text-transform:uppercase}
+.sess-q-text{font-weight:700;color:#fff;line-height:1.45}
+.sess-q-text .blank{color:var(--gold)}
+.sess-q-ctx{margin-top:4px;font-style:italic;color:#e9e2f5}
+.sess-q-ans{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:6px;font-size:13.5px}
+.sess-q-ans b{color:#fff}
+.sess-yours-ok{color:#9af0b3}
+.sess-yours-bad{color:#ff9aa0}
+.sess-correct{color:#9af0b3}
+.sess-passage{margin-bottom:8px;font-size:13px;color:#e9e2f5}
+.sess-passage summary{cursor:pointer;font-weight:800;color:var(--gold)}
+.sess-passage div{margin-top:6px;line-height:1.55;padding:8px 10px;border-radius:8px;background:rgba(0,0,0,.25)}
 .hist-stat{display:inline-flex;align-items:center;gap:4px}
 .hist-trend{font-weight:800;font-size:13px}
 .hist-trend.up{color:#46c46a}

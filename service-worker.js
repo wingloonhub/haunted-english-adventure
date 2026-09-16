@@ -5,7 +5,7 @@
      • Cross-origin (Firebase, gstatic CDN) → always go to network.
      • Bump CACHE_VERSION when you ship changes so old caches clear out.
 */
-const CACHE_VERSION = "haunted-v8";
+const CACHE_VERSION = "haunted-v9";
 const CORE = [
   "./",
   "./index.html",

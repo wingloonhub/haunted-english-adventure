@@ -189,10 +189,16 @@
         pct:        entry.total ? Math.round(entry.correct / entry.total * 100) : 0,
         byCat:      entry.byCat || {},
         bySection:  entry.bySection || null,
-        mistakes:   (entry.mistakes || []).slice(0, 10)
+        mistakes:   (entry.mistakes || []).slice(0, 10),
+        // Every question in the session (question, child's answer, correct
+        // answer, right/wrong) — powers the tap-to-open session details screen.
+        items:      entry.items || null
       };
       p.exam.history.unshift(clean);
       p.exam.history = p.exam.history.slice(0, 50);
+      // The whole save is one Firestore doc (1 MB cap), so only the most recent
+      // sessions keep their full question list; older ones keep score + mistakes.
+      p.exam.history.forEach((h, i) => { if (i >= 20 && h.items) delete h.items; });
       // Force an immediate cloud write — losing a completed session because the
       // kid closed the tab within a second would be a silent data-loss bug.
       STORE.save({ immediate: true });

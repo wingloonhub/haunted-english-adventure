@@ -771,6 +771,23 @@
             passage: a.q.passage || null
           };
         });
+      // Full question-by-question log, kept compact: long story passages are
+      // stored as their pid (looked up from the bank when viewed); short
+      // context lines (e.g. the punctuation sentence) are stored inline.
+      const items = examState.answers.map(a => {
+        const q = a.q, opts = q.options;
+        const it = {
+          q:   q.q || (q.spelling ? "Spell the word" : "Question"),
+          a:   opts ? (opts[a.chosen] != null ? opts[a.chosen] : String(a.chosen)) : String(a.chosen),
+          c:   opts ? (opts[q.answer] || "") : (q.word || ""),
+          ok:  a.correct ? 1 : 0,
+          cat: q.cat || "?"
+        };
+        if (q.sourceTopic) it.src = q.sourceTopic;
+        if (q.pid) it.pid = q.pid;
+        else if (q.passage) it.ctx = q.passage;
+        return it;
+      });
       STORE.recordExamSession({
         setId: examState.setId,
         topicId: examState.topicId,
@@ -779,7 +796,8 @@
         correct: correct,
         byCat: examState.byCat,
         bySection: examState.bySection || null,     // present for Challenge Test
-        mistakes: mistakes
+        mistakes: mistakes,
+        items: items
       });
     } catch (e) {
       // Log so a real save failure is diagnosable — but let the results render.
@@ -1098,12 +1116,15 @@
     const recent = history.slice(0, 10).map(h => {
       const topic = DATA.examTopic("year3_sem2", h.topicId) || { label: h.topicId };
       const band = pctBand(h.pct);
-      return `<div class="hist-session">
+      return `<div class="hist-session hist-session-open" data-ts="${h.ts}" role="button" tabindex="0">
         <div class="hist-session-row">
           <span class="hist-session-topic">${esc(topic.label)}</span>
           <span class="${band.cls}">${h.correct}/${h.total} · ${h.pct}%</span>
         </div>
-        <div class="hist-session-when muted">${agoLabel(h.ts)}</div>
+        <div class="hist-session-row">
+          <span class="hist-session-when muted">${agoLabel(h.ts)} · ${esc(fullDateLabel(h.ts))}</span>
+          <span class="hist-session-more">View details ›</span>
+        </div>
       </div>`;
     }).join("");
 
@@ -1136,6 +1157,137 @@
     // Tap a topic card to open its detailed analysis screen.
     screen().querySelectorAll(".hist-topic-card").forEach(card => {
       card.onclick = () => renderExamTopicDetail(card.dataset.topic);
+    });
+    // Tap a recent session to see every question in that test.
+    bindSessionRows(renderExamHistory);
+  }
+
+  // Wire up tappable session rows (Recent sessions / Every attempt).
+  function bindSessionRows(backFn) {
+    screen().querySelectorAll(".hist-session-open").forEach(row => {
+      const open = () => renderExamSessionDetail(Number(row.dataset.ts), backFn);
+      row.onclick = open;
+      row.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } };
+    });
+  }
+  function fullDateLabel(ts) {
+    try {
+      return new Date(ts).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true });
+    } catch (e) { return ""; }
+  }
+
+  // ===== One session — every question, the child's answer and the correct answer =====
+  function renderExamSessionDetail(ts, backFn) {
+    const p = STORE.active();
+    const history = (p && p.exam && p.exam.history) || [];
+    const h = history.find(x => x.ts === ts);
+    if (!h) return (backFn || renderExamHistory)();
+    const back = () => (backFn || renderExamHistory)();
+    const topic = DATA.examTopic(h.setId || "year3_sem2", h.topicId) || { label: h.topicId };
+    const band = pctBand(h.pct);
+    const bankFor = sid => (window.QUESTIONS_EXAM && window.QUESTIONS_EXAM[sid]) || [];
+    const passageFor = (sid, pid) => { const q = bankFor(sid).find(x => x.pid === pid); return q ? q.passage : ""; };
+    const colorFor = acc => acc >= 0.8 ? "#46c46a" : acc >= 0.55 ? "#e8b23a" : "#e2484d";
+    const tagFor   = acc => acc >= 0.8 ? "tag-strong" : acc >= 0.55 ? "tag-mid" : "tag-weak";
+
+    // Breakdown for THIS session — by section (Challenge Test) and by question type.
+    const breakdownCards = (obj, labelFn) => Object.keys(obj || {}).map(k => {
+      const s = obj[k]; const acc = s.total ? s.correct / s.total : 0; const pc = Math.round(acc * 100);
+      return { html: `<div class="rep-card">
+        <div class="t"><span>${esc(labelFn(k))}</span><span class="${tagFor(acc)}">${pc}%</span></div>
+        <div class="sub">${s.correct} / ${s.total} correct</div>
+        <div class="bar"><i style="width:${pc}%;background:${colorFor(acc)}"></i></div>
+      </div>`, acc };
+    }).sort((a, b) => a.acc - b.acc).map(r => r.html).join("");
+    const sectionCards = h.bySection
+      ? breakdownCards(h.bySection, sid => (DATA.examTopic(h.setId || "year3_sem2", sid) || {}).label || sid) : "";
+    const catCards = h.bySection ? "" : breakdownCards(h.byCat, c => catLabel(h.topicId, c));
+
+    // Question list. Newer sessions have `items` (every question); older ones
+    // only saved their mistakes, so fall back to those.
+    const hasItems = Array.isArray(h.items) && h.items.length;
+    let lastPassageKey = null;
+    const itemCards = hasItems ? h.items.map((it, i) => {
+      const sid = it.src || h.topicId;
+      let passageHtml = "";
+      if (it.pid) {
+        const key = sid + ":" + it.pid;
+        if (key !== lastPassageKey) {
+          const text = passageFor(sid, it.pid);
+          if (text) passageHtml = `<details class="sess-passage"><summary>📖 Read the passage</summary><div>${esc(text)}</div></details>`;
+        }
+        lastPassageKey = key;
+      } else {
+        lastPassageKey = null;
+      }
+      const secLabel = it.src ? ((DATA.examTopic(h.setId || "year3_sem2", it.src) || {}).label || it.src) : "";
+      return `<div class="sess-q ${it.ok ? "ok" : "bad"}" data-ok="${it.ok ? 1 : 0}">
+        ${passageHtml}
+        <div class="sess-q-head">
+          <span class="sess-q-num">${it.ok ? "✔" : "✘"} Q${i + 1}</span>
+          ${secLabel ? `<span class="sess-q-sec">${esc(secLabel)}</span>` : ""}
+        </div>
+        <div class="sess-q-text">${esc(it.q).replace(/___/g, '<span class="blank">___</span>')}</div>
+        ${it.ctx ? `<div class="sess-q-ctx">${esc(it.ctx)}</div>` : ""}
+        <div class="sess-q-ans">
+          <span class="${it.ok ? "sess-yours-ok" : "sess-yours-bad"}">Your answer: <b>${esc(it.a)}</b></span>
+          ${it.ok ? "" : `<span class="sess-correct">Correct: <b>${esc(it.c)}</b></span>`}
+        </div>
+      </div>`;
+    }).join("") : (h.mistakes || []).map(m => `<div class="sess-q bad" data-ok="0">
+        ${m.passage ? `<details class="sess-passage"><summary>📖 Read the passage</summary><div>${esc(m.passage)}</div></details>` : ""}
+        <div class="sess-q-text">${esc(m.q || "Question")}</div>
+        <div class="sess-q-ans">
+          <span class="sess-yours-bad">Your answer: <b>${esc(m.chosen)}</b></span>
+          <span class="sess-correct">Correct: <b>${esc(m.answer)}</b></span>
+        </div>
+      </div>`).join("");
+    const wrongCount = h.total - h.correct;
+
+    const listIntro = hasItems
+      ? `<div class="sess-filter" role="group" aria-label="Filter questions">
+           <button class="btn sm primary" data-filter="all">All ${h.items.length}</button>
+           <button class="btn sm ghost" data-filter="bad">Mistakes only (${wrongCount})</button>
+         </div>`
+      : `<p class="muted" style="margin:0 0 10px;line-height:1.55">This test was taken before full details were saved, so only ${h.mistakes && h.mistakes.length ? "the mistakes" : "the score"} can be shown. Tests from now on will show every question.</p>`;
+
+    screen().innerHTML = `
+      <div class="topbar"><span class="back" id="bk">← Back</span><h2>Test details</h2></div>
+      <div class="page" style="max-width:760px;margin:0 auto">
+        <div class="card" style="padding:22px">
+          <div class="hist-topic-head">
+            <div class="hist-topic-name">${esc(topic.label)}</div>
+            <span class="${band.cls}">${band.txt}</span>
+          </div>
+          <div class="exam-score" style="text-align:left;margin:8px 0 2px">${h.correct} / ${h.total} <span class="muted" style="font-size:18px">· ${h.pct}%</span></div>
+          <div class="muted" style="font-weight:600">${esc(fullDateLabel(h.ts))} · ${agoLabel(h.ts)}</div>
+        </div>
+
+        ${sectionCards ? `<h1 style="font-size:20px;margin:22px 0 10px">By section (weakest first)</h1><div class="rep-grid">${sectionCards}</div>` : ""}
+        ${catCards ? `<h1 style="font-size:20px;margin:22px 0 10px">By question type (weakest first)</h1><div class="rep-grid">${catCards}</div>` : ""}
+
+        <h1 style="font-size:20px;margin:22px 0 10px">${hasItems ? "Every question" : "Mistakes"}</h1>
+        ${listIntro}
+        <div class="sess-q-list" id="sessList">${itemCards || `<p class="muted">${h.total && h.correct === h.total ? "No mistakes — full marks! 🎉" : "No question details were saved for this test."}</p>`}</div>
+        <p class="muted" id="sessNoMistakes" hidden>No mistakes in this test — full marks! 🎉</p>
+
+        <div class="row" style="margin-top:22px;justify-content:center">
+          <button class="btn primary" id="backBtn">← Back</button>
+        </div>
+      </div>`;
+    $("#bk").onclick = back;
+    $("#backBtn").onclick = back;
+    screen().querySelectorAll(".sess-filter button").forEach(btn => {
+      btn.onclick = () => {
+        const onlyBad = btn.dataset.filter === "bad";
+        screen().querySelectorAll(".sess-filter button").forEach(b => {
+          const active = b === btn;
+          b.classList.toggle("primary", active);
+          b.classList.toggle("ghost", !active);
+        });
+        screen().querySelectorAll("#sessList .sess-q").forEach(el => { el.hidden = onlyBad && el.dataset.ok === "1"; });
+        $("#sessNoMistakes").hidden = !(onlyBad && wrongCount === 0);
+      };
     });
   }
 
@@ -1207,10 +1359,14 @@
     const sessionList = sessions.map((s, i) => {
       const b = pctBand(s.pct);
       const label = i === 0 ? "Latest" : ("#" + (sessions.length - i));
-      return `<div class="hist-session">
+      return `<div class="hist-session hist-session-open" data-ts="${s.ts}" role="button" tabindex="0">
         <div class="hist-session-row">
           <span class="hist-session-topic">${label} · <span class="muted">${esc(agoLabel(s.ts))}</span></span>
           <span class="${b.cls}">${s.correct}/${s.total} · ${s.pct}%</span>
+        </div>
+        <div class="hist-session-row">
+          <span class="hist-session-when muted">${esc(fullDateLabel(s.ts))}</span>
+          <span class="hist-session-more">View details ›</span>
         </div>
       </div>`;
     }).join("");
@@ -1309,6 +1465,7 @@
     $("#bk").onclick       = renderExamHistory;
     $("#backBtn").onclick  = renderExamHistory;
     $("#practiceBtn").onclick = () => renderExamPrepTopic("year3_sem2", topicId);
+    bindSessionRows(() => renderExamTopicDetail(topicId));
   }
 
   /* ===================== HUD ===================== */
